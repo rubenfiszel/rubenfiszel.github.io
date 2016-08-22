@@ -1,0 +1,56 @@
+% Exemple de CV utilisant la classe moderncv
+% Style classic en bleu
+% Article complet : http://blog.madrzejewski.com/creer-cv-elegant-latex-moderncv/
+
+\documentclass[11pt,usletter]{moderncv}
+\moderncvtheme[blue]{classic}
+\usepackage{fontawesome}
+% \usepackage{setspace}
+\usepackage[utf8]{inputenc}
+\usepackage[top=1.1cm, bottom=1.1cm, left=2cm, right=2cm]{geometry}
+\setlength{\hintscolumnwidth}{2.5cm}
+
+\firstname{Ruben}
+\familyname{Fiszel}
+\title{Master student in Computer Science \newline{} Minor in Financial Engineering}
+\phone{(415) 570-4109}
+\email{ruben.fiszel@epfl.ch}
+\extrainfo{\faGithub ~ rubenfiszel \\ \faLinkedin ~ rubenfiszel}
+
+
+\begin{document}
+\maketitle
+
+\section{Education}
+\cventry{2015 - 2017}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{Master in Computer Science with a minor in Financial Engineering}
+\cventry{2014-2015}{Johns Hopkins University (JHU)}{Baltimore, USA}{}{}{Third and Last year of Bachelor: Study abroad}
+\cventry{2012-2015}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{Bachelor of Science in CS \textbf{Overall GPA: 5.16/6}}
+
+
+\section{Work Experience}
+\cventry{Summer 2016}{Skymind}{San Francisco, US}{}{}{\normalsize{\textbf{Software Engineer Intern}} \\ Writing solely the Reinforcement Library rl4j (github.com/deeplearning4j/rl4j). Implementing the state-of-the-art A3C reinforcement learning method and DQN on top of the deep learning framework deeplearning4j.}
+\cventry{Summer 2013}{Crossing-Tech}{Lausanne, Switzerland}{}{}{\normalsize{\textbf{Software Engineer Intern}} \\ Building from scratch an interface in which the client can interact with the UI by writing directly in natural language. Developed in Scala language with the help of Grammatical Framework.}
+
+
+\section{Relevant Projects}
+\cventry{Spring 2016}{Semester project: Study of deep reinforcement learning methods and deep exploration}{}{}{}{Semester project at the Laboratory of Artificial Intelligence of EPFL}
+\cventry{2014-2015}{Android game, Sole developer}{Scala with libgdx}{}{}{Game inspired by Faster Than Light (FTL) with some real-time strategy (RTS) elements}
+\cventry{2014}{Quizz application backend using the actor Framework Akka}{Scala with Akka}{}{}{The stateful nature of a quizz was a perfect fit for the usage of an actor framework. The server was efficient and scalable to a high-volume of players}
+\cventry{2014}{eShop armancerotceig.com}{Python with Django}{}{}{}
+\cventry{2012-2013}{Android Strategy Game}{Scala with libgdx}{Not published}{}{Turn-by-turn strategy game, inspired from Advance Wars for Nintendo GBA}
+
+\section{Skills}
+\cvitem{Programming}{Scala, Java, Python, OCaml, Haskell, C/C++, Lisp, Perl, PHP, Matlab}
+\cvitem{Languages}{Native French, Fluent English, Basic German}
+\cvitem{Interests}{Strong interest in Statistics, Functionnal Programming, Artificial Intelligence, Machine Learning, NLP}
+\cvitem{Programming Contests}{
+  HopHacks 2015 ~ Google Code Jam: 2012, 2013 ~ Helvetic Coding Contest (hc2): 2013 ~ IEEEXtreme Programming: 2013 (72nd Mondial Ranking) ~~Prologin (french national programming contest): 2012, 2011
+}
+\cvitem{Others}{Ski instructor, Vice-President of the European Association at JHU 2014-2015, Teaching Assistant in C++ at EPFL, Class president throughout all my years at EPFL.}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
