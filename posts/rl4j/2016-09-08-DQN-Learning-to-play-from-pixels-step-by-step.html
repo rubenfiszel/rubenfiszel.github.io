@@ -335,6 +335,10 @@ Q_\pi(s, a) &amp;= E[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <h3 id="history-processing">History Processing</h3>
 <p>To give information to the Neural network about the current momentum, the last 4 frame (with skip frame, you pick 1 every 4) are stacked into 4 channels. Those 4 frames represent an history as previously discussed in the Observation setting section.</p>
 <div class="figure">
+<img src="slowed.gif" alt="Slowed input" />
+<p class="caption">Slowed input</p>
+</div>
+<div class="figure">
 <img src="stacked.png" alt="Stacking" />
 <p class="caption">Stacking</p>
 </div>
