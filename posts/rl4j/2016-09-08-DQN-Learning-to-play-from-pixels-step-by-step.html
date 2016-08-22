@@ -214,7 +214,6 @@ Q_\pi(s, a) &amp;= E[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <p>In a 1 player setting (like the atari game): We do not actually need to learn to play well in every situation (Although, if we did, that would show that we would have reached a very good level of generalization). We only need to learn to play efficiently from the states that our policy encounters. Thus, we can sample from states that are simply reachable by playing with our current policy from an initial state.</p>
 <h2 id="q-learning-implementation">Q-Learning implementation</h2>
 <p>So we can now design a naive prototype of our Q-Learning:</p>
-<p>(WIP) from that point</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
 
 <span class="kw">def</span> <span class="fu">epoch</span>() = {
