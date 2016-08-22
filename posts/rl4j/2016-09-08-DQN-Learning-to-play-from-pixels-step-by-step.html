@@ -18,7 +18,6 @@
                 <a href="../../">Home</a>
                 <a href="../../about.html">About</a>
                 <a href="../../contact.html">Contact</a>
-                <a href="../../archive.html">Archive</a>
             </div>
         </div>
 
@@ -207,7 +206,7 @@ Q_\pi(s, a) &amp;= E[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <p>if s is terminal:</p>
 <p><span class="math display">\[V(s) = 0\]</span></p>
 <p>and</p>
-<p><span class="math display">\[\text{target} = 0\]</span></p>
+<p><span class="math display">\[Q(s_{t-1}, a) = r_t\]</span></p>
 <p>The states near the terminal states are the first to converge because they are closer in the chain to that truth label: In Go or Chess, reinforcement learning is applied by assigning +1 to the transitions that lead to a final winning board (respectively -1 for a loosing board) and 0 otherwise. This lead to diffuse back how good is a transition by assigning it a value between [-1; 1]. A transition with Q value close to 0 lead to a balanced board. A transition with Q value close to 1 lead to a near certain victory.</p>
 <p>As long as we sample sufficiently transitions near the terminal states, Q-learning is able to converge. The incredible power of deep reinforcement learning is that it will be able to generalize its learning from visited states to unvisited states. It should be able to understand what is a balanced or winning board even if it never seen it before. This is because the network should be able to abstract patterns and understand the strength of an action based on previously seen pattern (eg: shoot an ennemy when recognizing one).</p>
 <h2 id="initial-state-sampling">Initial state sampling</h2>
@@ -432,9 +431,9 @@ Q_\pi(s, a) &amp;= E[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <p>Policy gradient were used by AlphaGo in combination with MonteCarlo Search Tree. The Neural Network was bootstrapped (pretrained) on a dataset of master move before they let it improve itself with RL.</p>
 <p>Nowadays, policy gradients are getting more popular. For example, A3C (see below) is based on it.</p>
 <h2 id="asynchronous-methods-for-deep-reinforcement-learning">Asynchronous Methods for Deep Reinforcement Learning</h2>
-<p>A3C (Asynchronous Actor Critic) and Async NStep Q learning are a WIP in rl4j. It bypass the need for experience replay by using multiple agents exploring in parrallel the environment. The original <a href="#atari">paper</a> uses Hogwild!. In RL4J, a workaround is to use a central thread and accumulate gradient from “slave” agents. Having multiple agents exploring the environment enable to decorrelate the experience from the past episode and enable to gather more experience (instead of replaying multiple time the same transition). It is very efficient and the authors were able to train efficiently on a single machine!</p>
+<p>A3C (Asynchronous Actor Critic) and Async NStep Q learning are a WIP in rl4j. It bypass the need for an experience replay by using multiple agents exploring in parrallel the environment. The original <a href="#atari">paper</a> uses Hogwild!. In RL4J, a workaround is to use a central thread and accumulate gradient from “slave” agents. Having multiple agents exploring the environment enable to decorrelate the experience from the past episode and enable to gather more experience (instead of replaying multiple time the same transition). It is very efficient and the authors were able to train efficiently on a single machine!</p>
 <h2 id="deep-exploration">Deep exploration</h2>
-<p>Deep exploration is defined as the multi-step ahead planning of the exploration.</p>
+<p>Deep exploration was the subject of a semester project during my master. I wrote the Scala library <a href="https://github.com/rubenfiszel/scala-drl">scala-drl</a> about it. Deep exploration is defined as the multi-step ahead planning of the exploration.</p>
 <p>In <a href="#bootstrapped">Bootstrapped DQN</a>, the term bootstrapping comes from <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">statistics</a>. Multiple neural network are constructured in parralel. At each epoch, one neural network explore the environment. Then the transition are randomly redistributed to each model. This has a similar effect than resampling. Having had differences experiences to learn from, each model has its own opinion about the the best move and its own uncertainty about the environment. This encourage deep exploration.</p>
 <p>Another way is to use <a href="#autoencoder">Autoencoder</a> to quantify the uncetainty about a novel state and attribute an exploration bonus based on the reconstruction ability.</p>
 <h2 id="other-interesting-papers-to-discover-by-yourself.">Other interesting papers to discover by yourself.</h2>
