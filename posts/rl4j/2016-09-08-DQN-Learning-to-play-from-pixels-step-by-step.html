@@ -88,7 +88,7 @@
 <p>In a greedy setting, we have the relationship:</p>
 <p><span class="math display">\[V(s_t) = \max_a Q(s_t, a)\]</span></p>
 <p>Now, let suppose instead of the V oracle, we have the Q oracle. We can now redefine <span class="math inline">\(\pi^*\)</span>.</p>
-<p><span class="math display">\[ \pi(s) ~ \text{chooses a s.t}~ a= \max_a[Q(s, a)] \]</span></p>
+<p><span class="math display">\[ \pi^*(s) ~ \text{chooses a s.t}~ a= \max_a[Q(s, a)] \]</span></p>
 <p><strong>Neat</strong></p>
 <p>Unfortunately, oracles do not exist in the real world.</p>
 <p>The trick here is that we have reduced an abstract notion that is a policy into a numerical function. Fortunately for us, there is one weapon at our disposal to approximate complex functions: <strong>Neural networks</strong>.</p>
@@ -274,10 +274,9 @@ Q_\pi(s, a) &amp;= E[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <h2 id="modeling-qs-a">Modeling Q(s, a)</h2>
 <p>Instead of having <span class="math inline">\(a\)</span> as an additional input of the neural net combined with the state, the state is the only input and the output contain the Q value of every output possible. This make sense only when the availables actions are consistent accross the full episode.</p>
 <div class="figure">
-<img src="qmodeling.png" alt="Q modeling" />
-<p class="caption">Q modeling</p>
+<img src="qmodeling.png" alt="Q modeling Source" />
+<p class="caption">Q modeling <a href="https://www.nervanasys.com/demystifying-deep-reinforcement-learning/">Source</a></p>
 </div>
-<p><a href="https://www.nervanasys.com/demystifying-deep-reinforcement-learning/">Source</a></p>
 <h2 id="experience-replay">Experience replay</h2>
 <p>There is one issue with using neural network as Q approximator with neural networks. The transitions are very correlated. After all, they are all extracted from the same episode. Imagine if you had to learn a task without any memory (not even short-term), you would always optimise your learning based on the last episode.</p>
 <p>The DeepMind team have had a genius idea to use an experience replay, which is a windowed buffer of the last N transition (N being a million in the original paper). Instead of updating from the last transition, you store it inside the experience replay and update from a batch of randomly sampled transitions from the same experience replay.</p>
@@ -313,10 +312,9 @@ Q_\pi(s, a) &amp;= E[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <h2 id="convolutional-layers-and-image-preprocessing">Convolutional layers and image preprocessing</h2>
 <h3 id="convolutional-layers">Convolutional layers</h3>
 <div class="figure">
-<img src="conv.png" alt="Convolutional layer" />
-<p class="caption">Convolutional layer</p>
+<img src="conv.png" alt="Convolutional layer Source" />
+<p class="caption">Convolutional layer <a href="#atari">Source</a></p>
 </div>
-<p><a href="#atari">Source</a></p>
 <p>Convolutional layers are layers that are excellent to detect local patterns in images. For pixels it is used as a processor that is required to reduce the dimension of the input into its real manifold. Given the proper manifold of observations, the decision becomes much easier.</p>
 <h3 id="image-processing">Image processing</h3>
 <p>You could feed the neural network with the RGB directly, but then the network would have to also learn that additional pattern. It seems like the brain is hard-wired to combine colors so it would seem reasonnable to accept that preprocessing.</p>
@@ -353,10 +351,10 @@ Q_\pi(s, a) &amp;= E[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <h2 id="prioritized-replay">Prioritized replay</h2>
 <p>The idea behind <a href="#prio">prioritized replay</a> is that not all transitions are born equal. Some are more important than others. One way to sort them is through their TD-error. Indeed, a high TD-error is correlated to a high level of information (in the sense of surprise). Those transitions should be sampled more often than the others.</p>
 <h2 id="graph-visualisation-and-mean-q">Graph, Visualisation and Mean-Q</h2>
-<p>To visualize and debug the training or a method of RL, it is a useful to have a visual monitoring.</p>
+<p>To visualize and debug the training or a method of RL, it is a useful to have a visual monitoring. This is why I built <a href="https://github.com/rubenfiszel/webapp-rl4j">webapp-rl4j</a>.</p>
 <div class="figure">
-<img src="screen.png" alt="rl4j-webapp" />
-<p class="caption">rl4j-webapp</p>
+<img src="screen.png" alt="webapp-rl4j" />
+<p class="caption">webapp-rl4j</p>
 </div>
 <p>The most important is to keep track of cumulative reward. This is a way to check that the agents effectively gets better. It is important to notice that it represents the epsilon greedy strategy and not directly dervied policy from the Q approximation.</p>
 <div class="figure">
