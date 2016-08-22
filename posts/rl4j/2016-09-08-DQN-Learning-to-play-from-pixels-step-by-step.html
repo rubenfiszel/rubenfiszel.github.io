@@ -40,7 +40,7 @@
 </div>
 
 <h1 id="introduction">Introduction</h1>
-<p>My 2 month summer internship comes to an end and this is a post to summarize what I have been working on: Building a deep reinforcement learning library for DL4J: … (drums build-up) … RL4J! This post begins by an introduction to reinforcement learning and is then followed by a detailed explanation of DQN for pixel inputs and is concluded by an RL4J example. But first, lets talk about the core concepts of reinforcement learning.</p>
+<p>My 2 month summer internship comes to an end and this is a post to summarize what I have been working on: Building a deep reinforcement learning library for DL4J: … (drums build-up) … RL4J! This post begins by an introduction to reinforcement learning and is then followed by a detailed explanation of DQN for pixel inputs and is concluded by an RL4J example. I will assume from the reader some familiarity with neural networks. But first, lets talk about the core concepts of reinforcement learning.</p>
 <div class="figure">
 <img src="cartpole.gif" alt="Cartpole" />
 <p class="caption">Cartpole</p>
@@ -114,9 +114,7 @@
 <p>More formally,</p>
 <p>Given a policy <span class="math inline">\(\pi\)</span>, a state s and an action a, in order to get an approximation of <span class="math inline">\(Q(s, a)\)</span> we sample it according to its definition:</p>
 <span class="math display">\[\begin{align*}
-Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
-&amp;= E[r_t + \gamma E_\pi \{ r_{t+1} + \gamma r_{t+2} + \ldots + \gamma^{n-1}  r_{n}\} \mid s_t = s, a_t = a] \\
-&amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n}\} \mid s_t = s, a_t = a]
+Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n}\} \mid s_t = s, a_t = a]
 \end{align*}\]</span>
 <p>In plain english, we can get a label for <span class="math inline">\(Q_\pi(s, a)\)</span> by playing a sufficient number of time from s according to the policy <span class="math inline">\(\pi\)</span>.</p>
 <p>From an aggregate of signals:</p>
@@ -124,8 +122,10 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <img src="qtarget.png" alt="One signal" />
 <p class="caption">One signal</p>
 </div>
-<p>We use the Mean-Square Error loss function (l2 loss) with a learning rate of <span class="math inline">\(\alpha\)</span> and apply Stochastic Gradient Descent (On a batch of size 1): <span class="math display">\[Q_\pi(s_t, a_t) \leftarrow Q_\pi(s_t, a_t) + \alpha [R_t-Q_\pi(s_t, a_t)]\]</span></p>
-<p>Note: There is no square in the formula because the loss is applied afterwards on the difference of the expected output <span class="math inline">\(Q_\pi(s_t, a_t)\)</span> and the label <span class="math inline">\(\alpha [R_t-Q_\pi(s_t, a_t)]\)</span></p>
+<p>The actual learning is done by standard Gradient descent, using the labels in batches. The gradient is the standard Mean-Square Error one such that the td-error gets minimised at each iteration.</p>
+<p>We use the Mean-Square Error loss function (l2 loss) with a learning rate of <span class="math inline">\(\alpha\)</span> and apply Stochastic Gradient Descent (On a batch of size 1) of: <span class="math display">\[Q_\pi(s_t, a_t) \leftarrow Q_\pi(s_t, a_t) + \alpha [R_t-Q_\pi(s_t, a_t)]\]</span></p>
+<p><span class="math inline">\((s_t, a_t)\)</span> is the input, <span class="math inline">\(Q_\pi(s_t, a_t) + \alpha [R_t-Q_\pi(s_t, a_t)]\)</span> is the label aka target.</p>
+<p>Note: Even if we use MSE, there is no square in the formula because the loss is applied afterwards on the difference of the expected output <span class="math inline">\(Q_\pi(s_t, a_t)\)</span> and the label <span class="math inline">\(\alpha [R_t-Q_\pi(s_t, a_t)]\)</span>.</p>
 <p>Repeat many times: Sampling from <span class="math inline">\(\pi\)</span> <span class="math display">\[Q_\pi(s_t, a_t)    \leftarrow E_\pi[R_t] = E_{s_t, a_t, ..., s_n \sim \pi}[\sum_{i=t}^n \gamma^{i-t}r_i]\]</span></p>
 <p>We can converge to the rightful expectation</p>
 <div class="figure">
@@ -201,31 +201,32 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <p>There is multiple issues: This should work but this is terribly inefficient. We are playing a full game with n state and n actions for a single label and that label might not be very meaningful (If the interesting trajectories are hard to reach at random).</p>
 <h2 id="the-explorationexploitation-dilemma">The Exploration/Exploitation dilemma</h2>
 <p>Exploring at random the environment will converge to the optimal policy … but only guaranteed after an almost infinite time: you will have to visit every possible trajectories (a trajectory is the state visited and action choosen during an episode) at least once. Considering how many states and branching there is, it is impossible. The branching issue is the reason why Go is so hard but chess is ok. In the real world, we do not have infinite time (and time is money).</p>
-<p>Thus, we should exploit the past informations and our learning of them to focus our exploration on the most promising possible trajectories. This can be achieved through different ways, and one of them is <span class="math inline">\(\epsilon\)</span>-greedy exploration. <span class="math inline">\(\epsilon\)</span>-greedy exploration is fairly simple. It is a policy that choose an action at random with odd <span class="math inline">\(epsilon\)</span> or the best action as deemed by our current policy with odd <span class="math inline">\((1-\epsilon)\)</span>. Usually <span class="math inline">\(epsilon\)</span> is annealed over time to privilege exploitation over exploration after enough exploration. This is a trade-off between exploration and exploitation.</p>
-<p>At each new information, our actual Q functions gets more accurate about the present policy and the exploration is focused on better paths. The policy based on our new Q function gets better (since Q is more accurate) and the <span class="math inline">\(\epsilon\)</span>-greedy exploration reach better path. Focused on those better paths, our q function explore even more the better parts and has to update its returns according to the new policy. This is an iterative cycle that enable convergence to the optimal policy called policy iteration. Unfortunately, the convergence can takes infinite time and is not even guaranteed when Q is approximated by neural networks. Nevertheless, impressive results can make up for the lack of formal convergence proofs.</p>
+<p>Thus, we should exploit the past informations and our learning of them to focus our exploration on the most promising possible trajectories. This can be achieved through different ways, and one of them is <span class="math inline">\(\epsilon\)</span>-greedy exploration. <span class="math inline">\(\epsilon\)</span>-greedy exploration is fairly simple. It is a policy that choose an action at random with odd <span class="math inline">\(\epsilon\)</span> or the best action as deemed by our current policy with odd <span class="math inline">\((1-\epsilon)\)</span>. Usually <span class="math inline">\(\epsilon\)</span> is annealed over time to privilege exploitation over exploration after enough exploration. This is a trade-off between exploration and exploitation.</p>
+<p>At each new information, our actual Q functions gets more accurate about the present policy and the exploration is focused on better paths. The policy based on our new Q function gets better (since Q is more accurate) and the <span class="math inline">\(\epsilon\)</span>-greedy exploration reach better paths. Focused on those better paths, our q function explore even more the better parts and has to update its returns according to the new policy. This is an iterative cycle that enable convergence to the optimal policy called policy iteration. Unfortunately, the convergence can takes infinite time and is not even guaranteed when Q is approximated by neural networks. Nevertheless, impressive results can make up for the lack of formal convergence proofs.</p>
 <div class="figure">
 <img src="policyiter.png" alt="Policy Iteration" />
 <p class="caption">Policy Iteration</p>
 </div>
-<p>It also requires you to be able to sample the states in a good manner: It should be proportionally representative of the states that are usally present in a game. (On a sidenote, this is possible in some case, see <a href="#giraffe">Giraffe</a> that uses TD-Lambda).</p>
+<p>This algorithm also requires you to be able to sample the states in a «good» manner: It should be proportionally representative of the states that are usally present in a game (or at least the kind of game at the targeted agent’s level) . On a sidenote, this is possible in some case, see <a href="#giraffe">Giraffe</a> that uses TD-Lambda.</p>
 <p>There is 3 important observations:</p>
 <h2 id="bellman-equation">Bellman equation</h2>
 <ul>
-<li>We can transform the Q equation into a <strong>Bellman equation</strong>: <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = s, a_t = a]\]</span> <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + V(s_{t+1}) \mid s_t = s, a_t = a]\]</span> <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + \ldots + \gamma \max_a' Q(s_{t+1}, a')\} \mid s_t = s, a_t = a]\]</span></li>
+<li>We can transform the Q equation into a <strong>Bellman equation</strong>: <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = s, a_t = a]\]</span> <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + V(s_{t+1}) \mid s_t = s, a_t = a]\]</span> <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + \ldots + \gamma \max_{a'} Q(s_{t+1}, a')\} \mid s_t = s, a_t = a]\]</span></li>
 </ul>
 <p>As in the Monte-Carlo method, we can do many updates of Q.</p>
 <p>MSE: <span class="math display">\[Q_\pi(s_t, a_t) \leftarrow Q_\pi(s_t, a_t) + \alpha [(\underbrace{\underbrace{r_t+\max_a Q_\pi(s_{t+1}, a)}_{\text{target}}-Q_\pi(s_t, a_t)}_{\text{TD-error}})]\]</span></p>
-<p>TD-error is the “Temporal difference error”. Indeed we are actually calculating the difference between what the Q approximation expects in the future and its present value and the realized reward.</p>
+<p>TD-error is the “Temporal difference error”. Indeed we are actually calculating the difference between what the Q approximation expects in the future plus the realized reward and its its present value as evaluated by the neural net.</p>
+<p>That bellman equation only make sense with some boundary conditions.</p>
 <p>if s is terminal:</p>
 <p><span class="math display">\[V(s) = 0\]</span></p>
 <p>and</p>
 <p><span class="math display">\[Q(s_{t-1}, a) = r_t\]</span></p>
-<p>The states near the terminal states are the first to converge because they are closer in the chain to that truth label: In Go or Chess, reinforcement learning is applied by assigning +1 to the transitions that lead to a final winning board (respectively -1 for a loosing board) and 0 otherwise. This lead to diffuse back how good is a transition by assigning it a value between [-1; 1]. A transition with Q value close to 0 lead to a balanced board. A transition with Q value close to 1 lead to a near certain victory.</p>
-<p>As long as we sample sufficiently transitions near the terminal states, Q-learning is able to converge. The incredible power of deep reinforcement learning is that it will be able to generalize its learning from visited states to unvisited states. It should be able to understand what is a balanced or winning board even if it never seen it before. This is because the network should be able to abstract patterns and understand the strength of an action based on previously seen pattern (eg: shoot an ennemy when recognizing one).</p>
+<p>The states near the terminal states are the first to converge because they are closer in the chain to the «true» label, the known for certain boundary conditions. In Go or Chess, reinforcement learning is applied by assigning +1 to the transitions that lead to a final winning board (respectively -1 for a loosing board) and 0 otherwise. This lead to diffuse back how good is a transition by assigning it a value between [-1; 1]. A transition with Q value close to 0 lead to a balanced board. A transition with Q value close to 1 lead to a near certain victory.</p>
+<p>As long as we sample sufficiently enough transitions near the terminal states, Q-learning is able to converge. The incredible power of deep reinforcement learning is that it will be able to generalize its learning from visited states to unvisited states. It should be able to understand what is a balanced or winning board even if it has never seen it before. This is because the network should be able to abstract patterns and understand the strength of an action based on previously seen pattern (eg: shoot an ennemy when recognizing its form).</p>
 <h2 id="offline-and-online-reinforcement-learning">Offline and online reinforcement learning</h2>
-<p>To learn more about the differences between online and offline reinforcement learning, see this excellent post from <a href="https://kofzor.github.io/Reinforcement_Learning_101/#comparing-reinforcement-learning-algorithms">kofzor</a></p>
+<p>To learn more about the differences between online and offline reinforcement learning, see this excellent post from <a href="https://kofzor.github.io/Reinforcement_Learning_101/#comparing-reinforcement-learning-algorithms">kofzor</a>.</p>
 <h2 id="initial-state-sampling">Initial state sampling</h2>
-<p>In a 1 player setting (like the atari game): We do not actually need to learn to play well in every situation (Although, if we did, that would show that we would have reached a very good level of generalization). We only need to learn to play efficiently from the states that our policy encounters. Thus, we can sample from states that are simply reachable by playing with our current policy from an initial state.</p>
+<p>In a 1 player setting (like the atari game): We do not actually need to learn to play well in every situation (Although, if we did, that would show that we would have reached a very good level of generalization). We only need to learn to play efficiently from the states that our policy encounters. Thus, we can sample from states that are simply reachable by playing with our current policy from an initial state. This enables to sample directly from a played episode by our agent.</p>
 <h2 id="q-learning-implementation">Q-Learning implementation</h2>
 <p>So we can now design a naive prototype of our Q-Learning:</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
@@ -286,14 +287,14 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 
 </code></pre></div>
 <h2 id="modeling-qs-a">Modeling Q(s, a)</h2>
-<p>Instead of having <span class="math inline">\(a\)</span> as an additional input of the neural net combined with the state, the state is the only input and the output contain the Q value of every output possible. This make sense only when the availables actions are consistent accross the full episode.</p>
+<p>Instead of having <span class="math inline">\(a\)</span> as an additional input of the neural net combined with the state, the state is the only input and the output contains the Q value of every action possible. This makes sense only when the availables actions are consistent accross the full episode (else the neural output layer would have to be different at each state). It is many times solvable by having the full set <span class="math inline">\(A\)</span> of actions as output and ignore the impossible actions (some papers put the target of impossible actions at 0).</p>
 <div class="figure">
 <img src="qmodeling.png" alt="Q modeling Source" />
 <p class="caption">Q modeling <a href="https://www.nervanasys.com/demystifying-deep-reinforcement-learning/">Source</a></p>
 </div>
 <h2 id="experience-replay">Experience replay</h2>
-<p>There is one issue with using neural network as Q approximator with neural networks. The transitions are very correlated. After all, they are all extracted from the same episode. Imagine if you had to learn a task without any memory (not even short-term), you would always optimise your learning based on the last episode.</p>
-<p>The DeepMind team have had a genius idea to use an experience replay, which is a windowed buffer of the last N transition (N being a million in the original paper). Instead of updating from the last transition, you store it inside the experience replay and update from a batch of randomly sampled transitions from the same experience replay.</p>
+<p>There is one issue with using neural network as Q approximator. The transitions are very correlated. After all, they are all extracted from the same episode. Imagine if you had to learn a task without any memory (not even short-term), you would always optimise your learning based on the last episode.</p>
+<p>The Google DeepMind research team have had a genius idea to use an experience replay, which is a windowed buffer of the last N transition (N being a million in the original paper). Instead of updating from the last transition, you store it inside the experience replay and update from a batch of randomly sampled transitions from the same experience replay.</p>
 <p>epoch() becomes:</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
 <span class="kw">def</span> <span class="fu">epoch</span>() = {
@@ -322,7 +323,7 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 	}
 }</code></pre></div>
 <h3 id="compression">Compression</h3>
-<p>ND4J does not support as first class uint8 but pixels in grayscaling are encoded with that precision. To avoid wasting too much space on memory, INDArray were compressed to uint8.</p>
+<p>nd4j, the tensor library of dl4j, does not support as first class type uint8. However, pixels in grayscaling are encoded with that precision. To avoid wasting too much space on memory, INDArray were compressed to uint8.</p>
 <h2 id="convolutional-layers-and-image-preprocessing">Convolutional layers and image preprocessing</h2>
 <h3 id="convolutional-layers">Convolutional layers</h3>
 <div class="figure">
@@ -331,7 +332,7 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 </div>
 <p>Convolutional layers are layers that are excellent to detect local patterns in images. For pixels it is used as a processor that is required to reduce the dimension of the input into its real manifold. Given the proper manifold of observations, the decision becomes much easier.</p>
 <h3 id="image-processing">Image processing</h3>
-<p>You could feed the neural network with the RGB directly, but then the network would have to also learn that additional pattern. It seems like the brain is hard-wired to combine colors so it would seem reasonnable to accept that preprocessing.</p>
+<p>You could feed the neural network with the RGB directly, but then the network would have to also learn that additional pattern. It seems like the brain is hard-wired to combine colors (fortunately!). Thus, it would seem reasonnable to tolerate that preprocessing.</p>
 <p>What you see:</p>
 <video autoplay loop>
 <source src="doom-pre.webm" type="video/webm">
@@ -344,7 +345,7 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <h3 id="resizing">resizing</h3>
 <p>The image is resized into 84x84. Convolutional layers needs for memory and computations grow with the size of their input. The fine details of the image are not required to play the game correctly. Indeed, many are purely aesthetic. Resizing to a more reasonnable size speed up the training.</p>
 <h3 id="skip-frame">Skip frame</h3>
-<p>In the original paper, only 1 in 4 frame is actually processed. For the following 3 images, the last action is repeated. It speeds up rougly by 4 time the training without loosing much information. Indeed, atari game are not supposed to be played frame perfect and for most action it makes more sense to keep them for at least 4 frames.</p>
+<p>In the original <a href="#atari">atari</a> paper, only 1 in 4 frame is actually processed. For the following 3 images, the last action is repeated. It speeds up rougly by 4 time the training without loosing much information. Indeed, atari game are not supposed to be played frame perfect and for most action it makes more sense to keep them for at least 4 frames.</p>
 <h3 id="history-processing">History Processing</h3>
 <p>To give information to the Neural network about the current momentum, the last 4 frame (with skip frame, you pick 1 every 4) are stacked into 4 channels. Those 4 frames represent an history as previously discussed in the Observation setting section.</p>
 <div class="figure">
@@ -355,32 +356,33 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 <img src="stacked.png" alt="Stacking" />
 <p class="caption">Stacking</p>
 </div>
-<p>To fill the first frames of the history, a random policy or a noop replay is used.</p>
+<p>To fill the first frames of the history, a random policy or a noop replay is used. (Sidenote, <a href="#doubleq">random starts</a> can be used for fair evaluation)</p>
 <h2 id="double-q-learning">Double Q-learning</h2>
-<p>The idea behind <a href="#doubleq">double DQN</a> is that the network is frozen every M update (hard update) or smoothly averaged (<code>target = target * (smooth) + current * (1-smooth)</code>) every update (soft update). Indeed, it adds stability to the learning by using a Q evaluation to use in the td-error formula that is less prone to unstability. The Q update becomes:</p>
+<p>The idea behind <a href="#doubleq">double DQN</a> is that the network is frozen every M update (hard update) or smoothly averaged (<code>target = target * (smooth) + current * (1-smooth)</code>) every update (soft update). Indeed, it adds stability to the learning by using a Q evaluation to use in the td-error formula that is less prone to “jiggering”. The Q update becomes:</p>
 <p><span class="math display">\[Y_\text{target} = r_t + \gamma*(Q_\text{target}(s_t+1, arg \max_a Q_\text(s_t+1, a))) \]</span></p>
 <h2 id="clipping">Clipping</h2>
-<p>The TD-error is clipped such that no outlier update can have too much impact on the learning.</p>
+<p>The TD-error can be clipped such that no outlier update can have too much impact on the learning.</p>
 <h2 id="scaling-rewards">Scaling rewards</h2>
-<p>Scaling the rewards such that Q-values are lower (in a range of [-1; 1] is similar to normalization). It can dramatically alter the efficiency of the learning.</p>
+<p>Scaling the rewards such that Q-values are lower (in a range of [-1; 1] is similar to normalization). It can dramatically alter the efficiency of the learning. This is an important hyperparameter to not neglect.</p>
 <h2 id="prioritized-replay">Prioritized replay</h2>
 <p>The idea behind <a href="#prio">prioritized replay</a> is that not all transitions are born equal. Some are more important than others. One way to sort them is through their TD-error. Indeed, a high TD-error is correlated to a high level of information (in the sense of surprise). Those transitions should be sampled more often than the others.</p>
 <h2 id="graph-visualisation-and-mean-q">Graph, Visualisation and Mean-Q</h2>
-<p>To visualize and debug the training or a method of RL, it is a useful to have a visual monitoring. This is why I built <a href="https://github.com/rubenfiszel/webapp-rl4j">webapp-rl4j</a>.</p>
+<p>To visualize and debug the training or a method of RL, it is useful to have a visual monitoring of the agent’s progress. This is why I built the dashboard <a href="https://github.com/rubenfiszel/webapp-rl4j">webapp-rl4j</a>.</p>
 <div class="figure">
 <img src="screen.png" alt="webapp-rl4j" />
 <p class="caption">webapp-rl4j</p>
 </div>
-<p>The most important is to keep track of cumulative reward. This is a way to check that the agents effectively gets better. It is important to notice that it represents the epsilon greedy strategy and not directly dervied policy from the Q approximation.</p>
+<p>The most important is to keep track of cumulative rewards. This is a way to check that the agents effectively gets better. It is important to notice that it represents the epsilon greedy strategy and not directly dervied policy from the Q approximation.</p>
 <div class="figure">
 <img src="rewardgraph.png" alt="Cumulative reward graph" />
 <p class="caption">Cumulative reward graph</p>
 </div>
-<p>But also the loss (score) and mean Q-values:</p>
+<p>But you might want to also track the loss (score of the neural network) and mean Q-values:</p>
 <div class="figure">
 <img src="scoregraph.png" alt="Score and mean-Q graph" />
 <p class="caption">Score and mean-Q graph</p>
 </div>
+<p>Unlike with classic supervised learning, the loss does not necessarily always decrease because the learning impact the labels!</p>
 <p>If used with target network, you should see some discontinuities from the non continuous evaluation of different target networks. Loss should decrease w.r.t to a single target network. The mean Q-values should smoothly converge towards a value proportionnal to the mean expected reward.</p>
 <h2 id="rl4j">RL4J</h2>
 <p>RL4J is available on <a href="https://github.com/deeplearning4j/rl4j">github</a>. Currently DQN with Experience Replay, Double Q-learning and clipping is implemented. It is possible to play both from pixels or low-dimensional problems (like Cartpole). Async Reinforcement Learning is experimental. Hopefully, contributions will enrich the library.</p>
@@ -439,21 +441,25 @@ Q_\pi(s, a) &amp;= E_\pi[r_t + V_\pi(s_{t+1}) \mid s_t = s, a_t = a] \\
 
     }</code></pre></div>
 <h1 id="conclusion">Conclusion</h1>
-<p>This was an exciting journey through deep reinforcement learning. From equations to code, Q-learning is a powerful yet a somewhat simple algorithm. The field of RL is very active and promising. In fact, Supervised learning could be considered a subset of Reinforcement learning (by setting the labels as rewards). Maybe one day, Reinforcement Learning will be the panacea. Until then, we can expect to be awed by it’s diverse application into more and more complex problems. I would also like to thank Skymind and its amazing team for this very enriching internship.</p>
+<p>This was an exciting journey through deep reinforcement learning. From equations to code, Q-learning is a powerful, yet a somewhat simple algorithm. The field of RL is very active and promising. In fact, Supervised learning could be considered a subset of Reinforcement learning (by setting the labels as rewards). Maybe one day, Reinforcement Learning will be the panacea of AI. Until then, we can expect to be awed by itss diverse applications into more and more mind-blowing problems. As a word of acknowledgement, I would like to thank Skymind and its amazing team for this very enriching internship.</p>
+<div class="figure">
+<img src="images/more.jpg" alt="more" />
+<p class="caption">more</p>
+</div>
 <h1 id="to-feed-your-appetite">To feed your appetite</h1>
-<p>I hope that thanks to this introduction, you are excited about R researchL. Here is a brief summary of important research in deep reinforcement learning.</p>
+<p>I hope that thanks to this introduction, you are excited about RL research. Here is a brief summary of important research in deep reinforcement learning.</p>
 <h2 id="continuous-domain">Continuous domain</h2>
 <p>When the action space is not discrete, you cannot use DQN. But many problems cannot be discretized. <a href="#continuous">Continuous control</a> is achieved through a normal distribution parametrized (mean and variance) by the output of the neural network. At each step, the action is sampled from the distribution. It also uses soft update of the target network.</p>
 <h2 id="policy-gradient">Policy gradient</h2>
-<p>Policy gradient work by directly learning the stochastic policy from the the log distribution. This excellent post from <a href="#karpathy">Karpathy’s blog</a> has more details on the matter. Using a stochastic policy feels more natural as it encourage exploration and exploit more fairly the uncertainty we have between the different values of the move. Indeed a max operation can end by ignoring fully a branch that is <span class="math inline">\(\epsilon\)</span> below in Q-value of another.</p>
+<p>Policy gradient works by directly learning the stochastic policy from cross entropy of the distribution scaled bythe advantage. This excellent post from <a href="#karpathy">Karpathy’s blog</a> has more details on the matter. Using a stochastic policy feels more natural as it encourages exploration and exploit more fairly the uncertainty we have between the different values of the move. Indeed a max operation can end by ignoring fully a branch that is <span class="math inline">\(\epsilon\)</span> below in Q-value of another. Although, This can be solved in DQN by using Boltzmann exploration.</p>
 <p>Policy gradient were used by AlphaGo in combination with MonteCarlo Search Tree. The Neural Network was bootstrapped (pretrained) on a dataset of master move before they let it improve itself with RL.</p>
 <p>Nowadays, policy gradients are getting more popular. For example, A3C (see below) is based on it.</p>
 <h2 id="asynchronous-methods-for-deep-reinforcement-learning">Asynchronous Methods for Deep Reinforcement Learning</h2>
-<p>A3C (Asynchronous Actor Critic) and Async NStep Q learning are a WIP in rl4j. It bypass the need for an experience replay by using multiple agents exploring in parrallel the environment. The original <a href="#atari">paper</a> uses Hogwild!. In RL4J, a workaround is to use a central thread and accumulate gradient from “slave” agents. Having multiple agents exploring the environment enable to decorrelate the experience from the past episode and enable to gather more experience (instead of replaying multiple time the same transition). It is very efficient and the authors were able to train efficiently on a single machine!</p>
+<p>A3C (Asynchronous Actor Critic) and Async NStep Q learning are a WIP in rl4j. It bypass the need for an experience replay by using multiple agents exploring in parrallel the environment. The original <a href="#atari">paper</a> uses <a href="https://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;uact=8&amp;ved=0ahUKEwjaiqzll9bOAhUU3mMKHYl8Bm0QFggeMAA&amp;url=https%3A%2F%2Fwww.eecs.berkeley.edu%2F~brecht%2Fpapers%2FhogwildTR.pdf&amp;usg=AFQjCNE9XrK7aEEQxMC2XkWxXrfyC90y2A&amp;sig2=CeCuHurShRX9cL-MB4hk6A">Hogwild!</a>. In RL4J, a workaround is to use a central thread and accumulate gradient from “slave” agents. Having multiple agents exploring the environment enable to decorrelate the experience from the past episode and enable to gather more experience (instead of replaying multiple time the same transition). It is very efficient and the authors were able to train efficiently on a single machine!</p>
 <h2 id="deep-exploration">Deep exploration</h2>
 <p>Deep exploration was the subject of a semester project during my master. I wrote the Scala library <a href="https://github.com/rubenfiszel/scala-drl">scala-drl</a> about it. Deep exploration is defined as the multi-step ahead planning of the exploration.</p>
 <p>In <a href="#bootstrapped">Bootstrapped DQN</a>, the term bootstrapping comes from <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">statistics</a>. Multiple neural network are constructured in parralel. At each epoch, one neural network explore the environment. Then the transition are randomly redistributed to each model. This has a similar effect than resampling. Having had differences experiences to learn from, each model has its own opinion about the the best move and its own uncertainty about the environment. This encourage deep exploration.</p>
-<p>Another way is to use <a href="#autoencoder">Autoencoder</a> to quantify the uncetainty about a novel state and attribute an exploration bonus based on the reconstruction ability.</p>
+<p>Another way is to use <a href="#autoencoder">Autoencoder</a> to quantify the uncertainty about a novel state and attribute an exploration bonus based on the reconstruction loss.</p>
 <h2 id="other-interesting-papers-to-discover-by-yourself.">Other interesting papers to discover by yourself.</h2>
 <h2 id="deterministic-policy-gradient">Deterministic Policy Gradient</h2>
 <p><a href="http://jmlr.org/proceedings/papers/v32/silver14.pdf" class="uri">http://jmlr.org/proceedings/papers/v32/silver14.pdf</a></p>
