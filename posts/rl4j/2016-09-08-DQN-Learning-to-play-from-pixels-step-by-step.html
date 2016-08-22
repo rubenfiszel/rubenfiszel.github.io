@@ -7,7 +7,7 @@
 	<link rel="icon" type="image/png" href="../../images/lambda-xl.png">
         <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
         <link rel="stylesheet" type="text/css" href="../../sass/main.css" />
-	<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+	<link type="text/css" href="../../css/font-awesome.min.css" rel="stylesheet">
 	<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
 	</script>
     </head>
@@ -40,7 +40,7 @@
 <img src="cartpole.gif" alt="Cartpole" />
 <p class="caption">Cartpole</p>
 </div>
-<video autoplay>
+<video autoplay loop>
 <source src="doom.webm" type="video/webm">
 </video>
 <h1 id="preliminaries">Preliminaries</h1>
@@ -57,7 +57,7 @@
 <p>Note: It is usually more convenient to use the set of Action <span class="math inline">\(A_s\)</span> which is the set of available move from a given state, than the complete set A. <span class="math inline">\(A_s\)</span> is simply the a elements <span class="math inline">\(\in A\)</span> such that <span class="math inline">\(P(s' | s, a) &gt; 0\)</span>.</p>
 <p>The markov property is to be memoryless. Once you reach a state, the past history (the states visited before) should not affect the next transition and reward. Only the present state matters.</p>
 <div class="figure">
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Markov_Decision_Process_example.png/400px-Markov_Decision_Process_example.png" alt="Schema of a MDP" />
+<img src="mdp.png" alt="Schema of a MDP" />
 <p class="caption">Schema of a MDP</p>
 </div>
 <p><strong>Final states</strong>: The states that have no available actions are final states.</p>
