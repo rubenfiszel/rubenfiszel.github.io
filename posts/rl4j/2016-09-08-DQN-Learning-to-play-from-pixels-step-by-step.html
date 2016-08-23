@@ -55,7 +55,7 @@
 <ul>
 <li>A set of states <span class="math inline">\(S\)</span> (eg: in chess, a state is the board configuration)</li>
 <li>A set of possible actions <span class="math inline">\(A\)</span> (In chess, all the move that could be possible in every configuration possible, eg: e4-e5)</li>
-<li>The conditional distribution <span class="math inline">\(P(s'| s, a)\)</span> of next states given a current state and an action. (In a deterministic environment like chess, there is only one state s’ with probability 1, and all the others have probability 0. Nevertheless, in a stochastic (involving randomness, eg: a coin toss) environment, the distribution is not as simple.)</li>
+<li>The conditional distribution <span class="math inline">\(P(s'| s, a)\)</span> of next states given a current state and an action. (In a deterministic environment like chess, transitioning from state <span class="math inline">\(s\)</span> with action <span class="math inline">\(a\)</span>, there is only one state s’ with probability 1, and all the others have probability 0. Nevertheless, in a stochastic (involving randomness, eg: a coin toss) environment, the distribution is not as simple.)</li>
 <li>The reward function of transitionning from state s to s’: <span class="math inline">\(R(s, s')\)</span> (eg: In chess, +1 for a final move that leads to a victory, -1 for a final move that leads to a defeat, 0 otherwise. In Cartpole, +1 for each step.).</li>
 <li>The discount factor: <span class="math inline">\(\gamma\)</span>. This is the preference for present rewards compared to future rewards. (A concept very common in <a href="https://en.wikipedia.org/wiki/Discounted_utility">finance</a>.)</li>
 </ul>
