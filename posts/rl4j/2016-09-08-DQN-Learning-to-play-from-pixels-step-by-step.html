@@ -451,11 +451,11 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
 <p>In <a href="#bootstrapped">Bootstrapped DQN</a>, the term bootstrapping comes from <a href="https://en.wikipedia.org/wiki/Bootstrapping_(statistics)">statistics</a>. Multiple neural network are constructured in parralel. At each epoch, one neural network explore the environment. Then the transition are randomly redistributed to each model. This has a similar effect than resampling. Having had differences experiences to learn from, each model has its own opinion about the the best move and its own uncertainty about the environment. This encourage deep exploration.</p>
 <p>Another way is to use <a href="#autoencoder">Autoencoder</a> to quantify the uncertainty about a novel state and attribute an exploration bonus based on the reconstruction loss.</p>
 <h2 id="other-interesting-papers-to-discover-by-yourself.">Other interesting papers to discover by yourself.</h2>
-<h2 id="deterministic-policy-gradient">Deterministic Policy Gradient</h2>
+<h3 id="deterministic-policy-gradient">Deterministic Policy Gradient</h3>
 <p><a href="http://jmlr.org/proceedings/papers/v32/silver14.pdf" class="uri">http://jmlr.org/proceedings/papers/v32/silver14.pdf</a></p>
-<h2 id="trusted-region-policy-optimisation">Trusted Region Policy Optimisation</h2>
+<h3 id="trusted-region-policy-optimisation">Trusted Region Policy Optimisation</h3>
 <p><a href="https://arxiv.org/abs/1502.05477" class="uri">https://arxiv.org/abs/1502.05477</a></p>
-<h2 id="dueling-network-architectures-for-deep-reinforcement-learning">Dueling Network Architectures for Deep Reinforcement Learning</h2>
+<h3 id="dueling-network-architectures-for-deep-reinforcement-learning">Dueling Network Architectures for Deep Reinforcement Learning</h3>
 <p><a href="http://arxiv.org/abs/1511.06581" class="uri">http://arxiv.org/abs/1511.06581</a></p>
 <h1 id="references">References</h1>
 <p><a name="karpathy"></a> <a href="http://karpathy.github.io/2016/05/31/rl/">Karpathy’s post about Policy Gradient</a></p>
