@@ -49,6 +49,9 @@
 <source src="doom.webm" type="video/webm">
 </video>
 <h1 id="preliminaries">Preliminaries</h1>
+<blockquote>
+<p>A “simple aspect of science” may be defined as one which, through good fortune, I happen to understand. (Isaac Asimov)</p>
+</blockquote>
 <p>Reinforcement Learning is an exciting area of machine learning. It is basically the learning of an efficient strategy in a given environment. Informally, this is very similar to Pavlovian conditioning: you assign a reward for a given behavior and over time, the agents learn to reproduce that behavior in order to receive more rewards. It is an iterative trial and error process.</p>
 <h2 id="markov-decision-process">Markov Decision Process</h2>
 <p>Formally, an environment is defined as a Markov Decision Process (MDP). Behind this scary name is nothing else than the combination of (5-tuple):</p>
@@ -89,6 +92,9 @@
 <p>Of course the information, which is a gradient in the context of a neural network, is of «higher quality» if he played directly against a very good agent from the start. But it is really mind-blowing that an agent can learn to increase his level of play by playing against himself, an agent of the same level. That is actually the method of training employed by <a href="https://deepmind.com/alpha-go">AlphaGo</a> (the Go agent from DeepMind that beat the World Champion). The policy was bootstrapped (initially trained) on a dataset of master moves, then it used reinforcement learning and self play to increase furthermore the level (quantified with elo). In the end, the agent got better than policy it was learning from the original dataset. After all, it beat the master above all the masters. To compute the final policy, they used their policy gradient in combination with a Monte-Carlo Search Tree on a massive amount of computation power.</p>
 <p>This setting is a bit different than learning from pixels. Firstly, because the input is not as high-dimensional. The <a href="http://colah.github.io/posts/2014-03-NN-Manifolds-Topology/">manifold</a> is a lot closer to its embedding space. Nevertheless, a convolutional layer was still used in this case to use efficiently the locality of some configuration patterns. Secondly, because AlphaGo is not model-free (it is deterministic). In the following of this post, I will talk exclusively about the model-free 1-player setting.</p>
 <h1 id="q-learning">Q-learning</h1>
+<blockquote>
+<p>I am no friend of probability theory, I have hated it from the first moment when our dear friend Max Born gave it birth. For it could be seen how easy and simple it made everything, in principle, everything ironed and the true problems concealed. (Erwin Schrödinger)</p>
+</blockquote>
 <h2 id="from-policy-to-neural-network">From policy to neural network</h2>
 <p>Our goal is learn the optimal policy <span class="math inline">\(\pi^*\)</span> that maximize: <span class="math display">\[E[R_0]=E[\sum_{t=0}^n \gamma^t r_{t+1}]\]</span> Let’s introduce an auxilliary function: <span class="math display">\[V_\pi(s) = E \{ r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \ldots + \gamma^n r_{n} \mid s_t = s, \text{policy followed at each state is }\pi \}\]</span> which is the expected cumulative reward from a state <span class="math inline">\(s\)</span> following the policy <span class="math inline">\(\pi\)</span>. Let suppose an oracle <span class="math display">\[V_{\pi^*}(s)\]</span> The V function of the optimal policy. From it, we could retrieve the optimal policy by defining the policy that among all available actions at the current state, choose the action that maximize the expectation of <span class="math inline">\(V_{\pi^*}(s)\)</span>. This is a greedy behavior. The optimal policy is the greedy policy w.r.t to <span class="math inline">\(V_{\pi^*}\)</span>. <span class="math display">\[ \pi^*(s) ~\text{chooses a s.t}~a=\max_a[E_\pi(r_t + \gamma V(s_{t+1}) \mid s_t=s, a_t=a)] \]</span> If you were very attentive, something would sound wrong here. In the model-free setting, we cannot predict the after-state <span class="math inline">\(s_{t+1}\)</span> from <span class="math inline">\(s_{t}\)</span> because we ignore the transition model. Even with that oracle, our model is still not computable!</p>
 <p>To solve this very annoying issue, we are gonna use another auxiliarry function, the Q-function: <span class="math display">\[Q_{\pi^*}(s, a) = E_\pi[r_t + \gamma V_{\pi^*}(s_{t+1}) \mid s_t, a_t = a]\]</span> In a greedy setting, we have the relationship: <span class="math display">\[V_\pi(s_t) = \max_a Q_\pi(s_t, a)\]</span> Now, let suppose instead of the V oracle, we have the Q oracle. We can now redefine <span class="math inline">\(\pi^*\)</span>. <span class="math display">\[ \pi^*(s) ~ \text{chooses a s.t}~ a= \max_a[Q_{\pi^*}(s, a)] \]</span> <strong>No more uncomputable expectations, Neat</strong></p>
@@ -320,10 +326,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
 <p>Convolutional layers are layers that are excellent to detect local patterns in images. For pixels it is used as a processor that is required to reduce the dimension of the input into its real manifold. Given the proper manifold of observations, the decision becomes much easier.</p>
 <h3 id="image-processing">Image processing</h3>
 <p>You could feed the neural network with the RGB directly, but then the network would have to also learn that additional pattern. It seems like the brain is hard-wired to combine colors (fortunately!). Thus, it would seem reasonnable to tolerate that preprocessing.</p>
-<p>What you see:</p>
-<video autoplay loop>
-<source src="doom-pre.webm" type="video/webm">
-</video>
+<p>What you see: <video autoplay loop> <source src="doom-pre.webm" type="video/webm"> </video></p>
 <p>What the neural net see:</p>
 <div class="figure">
 <img src="doom-post.gif" alt="Neural net input" />
@@ -348,7 +351,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
 <p>The idea behind <a href="#doubleq">double DQN</a> is that the network is frozen every M update (hard update) or smoothly averaged (<code>target = target * (smooth) + current * (1-smooth)</code>) every update (soft update). Indeed, it adds stability to the learning by using a Q evaluation to use in the td-error formula that is less prone to “jiggering”. The Q update becomes:</p>
 <p><span class="math display">\[Y_\text{target} = r_t + \gamma*(Q_\text{target}(s_t+1, arg \max_a Q_\text(s_t+1, a))) \]</span></p>
 <h2 id="clipping">Clipping</h2>
-<p>The TD-error can be clipped such that no outlier update can have too much impact on the learning.</p>
+<p>The TD-error can be clipped (bounded between two limit values) such that no outlier update can have too much impact on the learning.</p>
 <h2 id="scaling-rewards">Scaling rewards</h2>
 <p>Scaling the rewards such that Q-values are lower (in a range of [-1; 1] is similar to normalization). It can dramatically alter the efficiency of the learning. This is an important hyperparameter to not neglect.</p>
 <h2 id="prioritized-replay">Prioritized replay</h2>
@@ -429,11 +432,11 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
     }</code></pre></div>
 <h1 id="conclusion">Conclusion</h1>
 <p>This was an exciting journey through deep reinforcement learning. From equations to code, Q-learning is a powerful, yet a somewhat simple algorithm. The field of RL is very active and promising. In fact, Supervised learning could be considered a subset of Reinforcement learning (by setting the labels as rewards). Maybe one day, Reinforcement Learning will be the panacea of AI. Until then, we can expect to be awed by its diverse applications into more and more mind-blowing problems. As a word of acknowledgement, I would like to thank Skymind and its amazing team for this very enriching internship.</p>
-<div class="figure">
-<img src="../../images/more.jpg" alt="more" />
-<p class="caption">more</p>
-</div>
 <h1 id="to-feed-your-appetite">To feed your appetite</h1>
+<div class="figure">
+<img src="../../images/bookworm.jpg" alt="Bookworm" />
+<p class="caption">Bookworm</p>
+</div>
 <p>I hope that thanks to this introduction, you are excited about RL research. Here is a brief summary of important research in deep reinforcement learning.</p>
 <h2 id="continuous-domain">Continuous domain</h2>
 <p>When the action space is not discrete, you cannot use DQN. But many problems cannot be discretized. <a href="#continuous">Continuous control</a> is achieved through a normal distribution parametrized (mean and variance) by the output of the neural network. At each step, the action is sampled from the distribution. It also uses soft update of the target network.</p>
