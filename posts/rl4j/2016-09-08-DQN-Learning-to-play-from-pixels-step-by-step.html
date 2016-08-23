@@ -90,21 +90,9 @@
 <p>This setting is a bit different than learning from pixels. Firstly, because the input is not as high-dimensional. The <a href="http://colah.github.io/posts/2014-03-NN-Manifolds-Topology/">manifold</a> is a lot closer to its embedding space. Nevertheless, a convolutional layer was still used in this case to use efficiently the locality of some configuration patterns. Secondly, because AlphaGo is not model-free (it is deterministic). In the following of this post, I will talk exclusively about the model-free 1-player setting.</p>
 <h1 id="q-learning">Q-learning</h1>
 <h2 id="from-policy-to-neural-network">From policy to neural network</h2>
-<p>Our goal is learn the optimal policy <span class="math inline">\(\pi^*\)</span> that maximize <span class="math display">\[E[R_0]=E[\sum_{t=0}^n \gamma^t r_{t+1}]\]</span> Let’s introduce an auxilliary function: <span class="math display">\[V_\pi(s) = E \{ r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \ldots + \gamma^n r_{n} \mid s_t = s, \text{policy followed at each state is }\pi \}\]</span> which is the expected cumulative reward from a state <span class="math inline">\(s\)</span> following the policy <span class="math inline">\(\pi\)</span>.</p>
-<p>Let suppose an oracle</p>
-<p><span class="math display">\[V_{\pi^*}(s)\]</span></p>
-<p>The V function of the optimal policy. From it, we could retrieve the optimal policy by defining the policy that among all available actions at the current state, choose the action that maximize the expectation of <span class="math inline">\(V_{\pi^*}(s)\)</span>. This is a greedy behavior. The optimal policy is the greedy policy w.r.t to <span class="math inline">\(V_{\pi^*}\)</span>.</p>
-<p><span class="math display">\[ \pi^*(s) ~\text{chooses a s.t}~a=\max_a[E_\pi(r_t + \gamma V(s_{t+1}) \mid s_t=s, a_t=a)] \]</span></p>
-<p>If you were very attentive, something would sound wrong here. In the model-free setting, we cannot predict the after-state <span class="math inline">\(s_{t+1}\)</span> from <span class="math inline">\(s_{t}\)</span> because we ignore the transition model. Even with that oracle, our model is still not computable!</p>
-<p>To solve this very annoying issue, we are gonna use another auxiliarry function, the Q-function:</p>
-<p><span class="math display">\[Q_{\pi^*}(s, a) = E_\pi[r_t + \gamma V_{\pi^*}(s_{t+1}) \mid s_t, a_t = a]\]</span></p>
-<p>In a greedy setting, we have the relationship:</p>
-<p><span class="math display">\[V_\pi(s_t) = \max_a Q_\pi(s_t, a)\]</span></p>
-<p>Now, let suppose instead of the V oracle, we have the Q oracle. We can now redefine <span class="math inline">\(\pi^*\)</span>.</p>
-<p><span class="math display">\[ \pi^*(s) ~ \text{chooses a s.t}~ a= \max_a[Q_{\pi^*}(s, a)] \]</span></p>
-<p><strong>No more uncomputable expectations, Neat</strong></p>
-<p>Nevertheless, we have only moved the expectation from outside to inside the oracle.</p>
-<p>And unfortunately, oracles do not exist in the real world.</p>
+<p>Our goal is learn the optimal policy <span class="math inline">\(\pi^*\)</span> that maximize: <span class="math display">\[E[R_0]=E[\sum_{t=0}^n \gamma^t r_{t+1}]\]</span> Let’s introduce an auxilliary function: <span class="math display">\[V_\pi(s) = E \{ r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \ldots + \gamma^n r_{n} \mid s_t = s, \text{policy followed at each state is }\pi \}\]</span> which is the expected cumulative reward from a state <span class="math inline">\(s\)</span> following the policy <span class="math inline">\(\pi\)</span>. Let suppose an oracle <span class="math display">\[V_{\pi^*}(s)\]</span> The V function of the optimal policy. From it, we could retrieve the optimal policy by defining the policy that among all available actions at the current state, choose the action that maximize the expectation of <span class="math inline">\(V_{\pi^*}(s)\)</span>. This is a greedy behavior. The optimal policy is the greedy policy w.r.t to <span class="math inline">\(V_{\pi^*}\)</span>. <span class="math display">\[ \pi^*(s) ~\text{chooses a s.t}~a=\max_a[E_\pi(r_t + \gamma V(s_{t+1}) \mid s_t=s, a_t=a)] \]</span> If you were very attentive, something would sound wrong here. In the model-free setting, we cannot predict the after-state <span class="math inline">\(s_{t+1}\)</span> from <span class="math inline">\(s_{t}\)</span> because we ignore the transition model. Even with that oracle, our model is still not computable!</p>
+<p>To solve this very annoying issue, we are gonna use another auxiliarry function, the Q-function: <span class="math display">\[Q_{\pi^*}(s, a) = E_\pi[r_t + \gamma V_{\pi^*}(s_{t+1}) \mid s_t, a_t = a]\]</span> In a greedy setting, we have the relationship: <span class="math display">\[V_\pi(s_t) = \max_a Q_\pi(s_t, a)\]</span> Now, let suppose instead of the V oracle, we have the Q oracle. We can now redefine <span class="math inline">\(\pi^*\)</span>. <span class="math display">\[ \pi^*(s) ~ \text{chooses a s.t}~ a= \max_a[Q_{\pi^*}(s, a)] \]</span> <strong>No more uncomputable expectations, Neat</strong></p>
+<p>Nevertheless, we have only moved the expectation from outside to inside the oracle. And unfortunately, oracles do not exist in the real world.</p>
 <p>The trick here is that we have reduced an abstract notion that is a policy into a numerical function that might be relatively “smooth” (continuous) thanks to the expectation. Fortunately for us, there is one weapon at our disposal to approximate such complex functions: <strong>Neural networks</strong>.</p>
 <p>Neural networks are universal function approximator. They can approximate any continuous differentiable function. Although they can get stuck in local extrema and many proofs of convergence from reinforcement learning are not valid anymore when throwing neural networks in the equation. This is because their learning is not as deterministic or boundable as their tabular counterparts. Nonetheless, in most case, with the right hyperparameters, they are <a href="http://karpathy.github.io/2015/05/21/rnn-effectiveness/">unreasonnably powerful</a>. Using deep learning with reinforcement learning is called deep reinforcement learning.</p>
 <h2 id="policy-iteration">Policy iteration</h2>
@@ -126,8 +114,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n}\} \mid s_t 
 <p>We use the Mean-Square Error loss function (l2 loss) with a learning rate of <span class="math inline">\(\alpha\)</span> and apply Stochastic Gradient Descent (On a batch of size 1) of: <span class="math display">\[Q_\pi(s_t, a_t) \leftarrow Q_\pi(s_t, a_t) + \alpha [R_t-Q_\pi(s_t, a_t)]\]</span></p>
 <p><span class="math inline">\((s_t, a_t)\)</span> is the input, <span class="math inline">\(Q_\pi(s_t, a_t) + \alpha [R_t-Q_\pi(s_t, a_t)]\)</span> is the label aka target.</p>
 <p>Note: Even if we use MSE, there is no square in the formula because the loss is applied afterwards on the difference of the expected output <span class="math inline">\(Q_\pi(s_t, a_t)\)</span> and the label <span class="math inline">\(\alpha [R_t-Q_\pi(s_t, a_t)]\)</span>.</p>
-<p>Repeat many times: Sampling from <span class="math inline">\(\pi\)</span> <span class="math display">\[Q_\pi(s_t, a_t)    \leftarrow E_\pi[R_t] = E_{s_t, a_t, ..., s_n \sim \pi}[\sum_{i=t}^n \gamma^{i-t}r_i]\]</span></p>
-<p>We can converge to the rightful expectation</p>
+<p>Repeat many times: Sampling from <span class="math inline">\(\pi\)</span> <span class="math display">\[Q_\pi(s_t, a_t)    \leftarrow E_\pi[R_t] = E_{s_t, a_t, ..., s_n \sim \pi}[\sum_{i=t}^n \gamma^{i-t}r_i]\]</span> We can converge to the rightful expectation</p>
 <div class="figure">
 <img src="qexpect.png" alt="Many signals" />
 <p class="caption">Many signals</p>
@@ -208,20 +195,20 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n}\} \mid s_t 
 <p class="caption">Policy Iteration</p>
 </div>
 <p>This algorithm also requires you to be able to sample the states in a «good» manner: It should be proportionally representative of the states that are usally present in a game (or at least the kind of game at the targeted agent’s level) . On a sidenote, this is possible in some case, see <a href="#giraffe">Giraffe</a> that uses TD-Lambda.</p>
-<p>There is 3 important observations:</p>
+<p>Fortunately, some rearranging and optimisations are possible:</p>
 <h2 id="bellman-equation">Bellman equation</h2>
-<ul>
-<li>We can transform the Q equation into a <strong>Bellman equation</strong>: <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = s, a_t = a]\]</span> <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + V(s_{t+1}) \mid s_t = s, a_t = a]\]</span> <span class="math display">\[Q_\pi(s, a)= E[r_t + \gamma r_{t+1} + \ldots + \gamma \max_{a'} Q(s_{t+1}, a')\} \mid s_t = s, a_t = a]\]</span></li>
-</ul>
+We can transform the Q equation into a <strong>Bellman equation</strong>:
+<span class="math display">\[\begin{align*}
+Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = s, a_t = a] \\
+&amp;= E[r_t + \gamma r_{t+1} + V(s_{t+1}) \mid s_t = s, a_t = a] \\
+&amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma \max_{a'} Q(s_{t+1}, a')\} \mid s_t = s, a_t = a] \\
+\end{align*}\]</span>
 <p>As in the Monte-Carlo method, we can do many updates of Q.</p>
 <p>MSE: <span class="math display">\[Q_\pi(s_t, a_t) \leftarrow Q_\pi(s_t, a_t) + \alpha [(\underbrace{\underbrace{r_t+\max_a Q_\pi(s_{t+1}, a)}_{\text{target}}-Q_\pi(s_t, a_t)}_{\text{TD-error}})]\]</span></p>
 <p>TD-error is the “Temporal difference error”. Indeed we are actually calculating the difference between what the Q approximation expects in the future plus the realized reward and its its present value as evaluated by the neural net.</p>
-<p>That bellman equation only make sense with some boundary conditions.</p>
-<p>if s is terminal:</p>
-<p><span class="math display">\[V(s) = 0\]</span></p>
-<p>and</p>
-<p><span class="math display">\[Q(s_{t-1}, a) = r_t\]</span></p>
-<p>The states near the terminal states are the first to converge because they are closer in the chain to the «true» label, the known boundary conditions. In Go or Chess, reinforcement learning is applied by assigning +1 to the transitions that lead to a final winning board (respectively -1 for a loosing board) and 0 otherwise. It diffuses the Q-values by finding a point between the two extremes [-1; 1]. A transition with Q value close to 0 represents a transition leading to a balanced board. A transition with Q value close to 1 represents a near certain victory. It could be surprising that the moves do not have only -1 and 1 values (since deviating from the optimal path should be fatal). One interesting aspect of calculating Q-values is the realization that in many games/MDP, no mistake in itself is ever really fatal. It is the accumulation of them that really kill you. AI is full of life lessons ;). Moreover, The expected accumulated reward space is a lot smoother than often thought. One possible explanation is that expectations always have an average effect: an expectation is nothing else than a weighted average with probabilities as weights. Furthermore, gamma being <span class="math inline">\(&lt; 1\)</span> the very long-term effects are not too preponderant. Isn’t it exciting to be able to calculate directly the odd of winning a game for every transition ?</p>
+<p>That bellman equation only make sense with some boundary conditions. if s is terminal: <span class="math display">\[V(s) = 0\]</span> and for any a <span class="math display">\[Q(s_{t-1}, a) = r_t\]</span></p>
+<p>The states near the terminal states are the first to converge because they are closer in the chain to the «true» label, the known boundary conditions. In Go or Chess, reinforcement learning is applied by assigning +1 to the transitions that lead to a final winning board (respectively -1 for a loosing board) and 0 otherwise. It diffuses the Q-values by finding a point between the two extremes [-1; 1]. A transition with Q value close to 0 represents a transition leading to a balanced board. A transition with Q value close to 1 represents a near certain victory.</p>
+<p>It could be surprising that the moves do not have only -1 and 1 values (since deviating from the optimal path should be fatal). One interesting aspect of calculating Q-values is the realization that in many games/MDP, no mistake in itself is ever really fatal. It is the accumulation of them that really kill you. AI is full of life lessons ;). Moreover, The expected accumulated reward space is a lot smoother than often thought. One possible explanation is that expectations always have an average effect: an expectation is nothing else than a weighted average with probabilities as weights. Furthermore, gamma being <span class="math inline">\(&lt; 1\)</span> the very long-term effects are not too preponderant. Isn’t it exciting to be able to calculate directly the odd of winning a game for every transition ?</p>
 <p>As long as we sample sufficiently enough transitions near the terminal states, Q-learning is able to converge. The incredible power of deep reinforcement learning is that it will be able to generalize its learning from visited states to unvisited states. It should be able to understand what is a balanced or winning board even if it has never seen it before. This is because the network should be able to abstract patterns and understand the strength of an action based on previously seen pattern (eg: shoot an enemy when recognizing its form).</p>
 <h2 id="offline-and-online-reinforcement-learning">Offline and online reinforcement learning</h2>
 <p>To learn more about the differences between online and offline reinforcement learning, see this excellent post from <a href="https://kofzor.github.io/Reinforcement_Learning_101/#comparing-reinforcement-learning-algorithms">kofzor</a>.</p>
@@ -443,7 +430,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n}\} \mid s_t 
 <h1 id="conclusion">Conclusion</h1>
 <p>This was an exciting journey through deep reinforcement learning. From equations to code, Q-learning is a powerful, yet a somewhat simple algorithm. The field of RL is very active and promising. In fact, Supervised learning could be considered a subset of Reinforcement learning (by setting the labels as rewards). Maybe one day, Reinforcement Learning will be the panacea of AI. Until then, we can expect to be awed by its diverse applications into more and more mind-blowing problems. As a word of acknowledgement, I would like to thank Skymind and its amazing team for this very enriching internship.</p>
 <div class="figure">
-<img src="images/more.jpg" alt="more" />
+<img src="../../images/more.jpg" alt="more" />
 <p class="caption">more</p>
 </div>
 <h1 id="to-feed-your-appetite">To feed your appetite</h1>
