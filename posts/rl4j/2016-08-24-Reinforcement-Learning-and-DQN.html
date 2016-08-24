@@ -287,7 +287,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
 </div>
 <h2 id="experience-replay">Experience replay</h2>
 <p>There is one issue with using neural network as Q approximator. The transitions are very correlated. After all, they are all extracted from the same episode. Imagine if you had to learn a task without any memory (not even short-term), you would always optimise your learning based on the last episode.</p>
-<p>The Google DeepMind research team have had a genius idea to use an experience replay, which is a windowed buffer of the last N transition (N being a million in the original paper). Instead of updating from the last transition, you store it inside the experience replay and update from a batch of randomly sampled transitions from the same experience replay.</p>
+<p>The Google DeepMind research team used experience replay, which is a windowed buffer of the last N transitions (N being a million in the original paper) with DQN and greatly improved their performances on atari. Instead of updating from the last transition, you store it inside the experience replay and update from a batch of randomly sampled transitions from the same experience replay.</p>
 <p>epoch() becomes:</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
 <span class="kw">def</span> <span class="fu">epoch</span>() = {
