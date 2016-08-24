@@ -167,8 +167,8 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n}\} \mid s_t 
 	<span class="kw">while</span> (!s.<span class="fu">isTerminal</span>) {
 		<span class="kw">val</span> action = <span class="fu">randomAction</span>(s)
 		<span class="kw">val</span> (state, reward) = <span class="fu">transition</span>(s, action)
-		k += <span class="dv">1</span>
 		accuReward += Math.<span class="fu">pow</span>(gamma, k) * reward
+		k += <span class="dv">1</span>
 		s = state
 	}
 	accuReward
