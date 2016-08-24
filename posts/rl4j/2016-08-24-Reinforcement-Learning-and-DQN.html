@@ -335,7 +335,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
 <h3 id="resizing">resizing</h3>
 <p>The image is resized into 84x84. Convolutional layers needs for memory and computations grow with the size of their input. The fine details of the image are not required to play the game correctly. Indeed, many are purely aesthetic. Resizing to a more reasonnable size speed up the training.</p>
 <h3 id="skip-frame">Skip frame</h3>
-<p>In the original <a href="#atari">atari</a> paper, only 1 in 4 frame is actually processed. For the following 3 images, the last action is repeated. It speeds up rougly by 4 time the training without loosing much information. Indeed, atari game are not supposed to be played frame perfect and for most action it makes more sense to keep them for at least 4 frames.</p>
+<p>In the original <a href="#atari">atari</a> paper, only 1 in 4 frame is actually processed. For the following 3 images, the last action is repeated. It speeds up roughly by 4 time the training without loosing much information. Indeed, atari game are not supposed to be played frame perfect and for most action it makes more sense to keep them for at least 4 frames.</p>
 <h3 id="history-processing">History Processing</h3>
 <p>To give information to the Neural network about the current momentum, the last 4 frame (with skip frame, you pick 1 every 4) are stacked into 4 channels. Those 4 frames represent an history as previously discussed in the Observation setting section.</p>
 <div class="figure">
