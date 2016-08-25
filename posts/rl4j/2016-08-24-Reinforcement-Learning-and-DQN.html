@@ -505,7 +505,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
         <span class="kw">val</span> advantage = r - prevCriticOutput
         <span class="kw">val</span> prevActorOutput = <span class="fu">actorOutput</span>(neuralNet, trans.<span class="fu">state</span>)
 
-        actorLabel.<span class="fu">appendRow</span>(prevActorOutput.<span class="fu">addScalar</span>(trans.<span class="fu">state</span>, r))
+        actorLabel.<span class="fu">appendRow</span>(prevActorOutput.<span class="fu">addScalar</span>(trans.<span class="fu">action</span>, r))
 
       }
 
