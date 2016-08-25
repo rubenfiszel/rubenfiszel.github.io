@@ -499,7 +499,7 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
         r = trans.<span class="fu">reward</span> + gamma*r
 
         inputs.<span class="fu">appendRow</span>(trans.<span class="fu">state</span>)
-        criticLabel.<span class="fu">appendRow</span>(r)
+        criticLabels.<span class="fu">appendRow</span>(r)
 
         <span class="kw">val</span> prevCriticOutput = <span class="fu">criticOutput</span>(neuralNet, trans.<span class="fu">state</span>)
         <span class="kw">val</span> advantage = r - prevCriticOutput
