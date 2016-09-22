@@ -77,7 +77,7 @@
 <p><strong>The objective of reinforcement learning is to train an agent such that his policy converges to the theoretical optimal policy</strong>.</p>
 <h1 id="different-settings">Different settings</h1>
 <blockquote>
-<p>« Qui peut le plus peut le moins » (He who can do the greather things, can do the lesser things)</p>
+<p>« Qui peut le plus peut le moins » (He who can do the greater things, can do the lesser things)</p>
 </blockquote>
 <h2 id="model-free">Model-free</h2>
 <p>The conditional distribution and the reward function constitute the model of the environment. In a game of backgammon, we know the model (each possible transition is decided by the known dice distribution, and we can predict each reward from transition without realizing them (because we can calculate the new value of the board)). The algorithm <a href="https://webdocs.cs.ualberta.ca/~sutton/book/ebook/node108.html">TD-gammon</a> use that fact to learn the V-function (see below).</p>
@@ -347,14 +347,14 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
 <p class="caption">Stacking</p>
 </div>
 <p>To fill the first frames of the history, a random policy or a noop replay is used. (Sidenote, <a href="#doubleq">random starts</a> can be used for fair evaluation)</p>
-<h2 id="double-q-learning">Double Q-learning</h2>
+<h3 id="double-q-learning">Double Q-learning</h3>
 <p>The idea behind <a href="#doubleq">double DQN</a> is that the network is frozen every M update (hard update) or smoothly averaged (<code>target = target * (smooth) + current * (1-smooth)</code>) every update (soft update). Indeed, it adds stability to the learning by using a Q evaluation to use in the td-error formula that is less prone to “jiggering”. The Q update becomes:</p>
 <p><span class="math display">\[Y_\text{target} = r_t + \gamma*(Q_\text{target}(s_t+1, arg \max_a Q_\text(s_t+1, a))) \]</span></p>
-<h2 id="clipping">Clipping</h2>
+<h3 id="clipping">Clipping</h3>
 <p>The TD-error can be clipped (bounded between two limit values) such that no outlier update can have too much impact on the learning.</p>
-<h2 id="scaling-rewards">Scaling rewards</h2>
+<h3 id="scaling-rewards">Scaling rewards</h3>
 <p>Scaling the rewards such that Q-values are lower (in a range of [-1; 1] is similar to normalization). It can dramatically alter the efficiency of the learning. This is an important hyperparameter to not neglect.</p>
-<h2 id="prioritized-replay">Prioritized replay</h2>
+<h3 id="prioritized-replay">Prioritized replay</h3>
 <p>The idea behind <a href="#prio">prioritized replay</a> is that not all transitions are born equal. Some are more important than others. One way to sort them is through their TD-error. Indeed, a high TD-error is correlated to a high level of information (in the sense of surprise). Those transitions should be sampled more often than the others.</p>
 <h2 id="graph-visualisation-and-mean-q">Graph, Visualisation and Mean-Q</h2>
 <p>To visualize and debug the training or a method of RL, it is useful to have a visual monitoring of the agent’s progress. This is why I built the dashboard <a href="https://github.com/rubenfiszel/webapp-rl4j">webapp-rl4j</a>.</p>
