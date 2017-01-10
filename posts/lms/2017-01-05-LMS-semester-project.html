@@ -42,7 +42,7 @@
   <h2 id="note">Note</h2>
 <p>This is a web-formatted version of my semester project II at the <a href="http://lamp.epfl.ch/">LAMP</a> of EPFL under the supervision of <a href="http://lampwww.epfl.ch/~amin/cv/">Nada Amin</a> and <a href="http://lampwww.epfl.ch/~odersky/">Prof. Martin Odersky</a>. The code is available <a href="https://github.com/rubenfiszel/lms-clean/">here</a>.</p>
 <h2 id="abstract">Abstract</h2>
-<p>In this report, we explore staged meta-programming, in particular the LMS framework and the development of its new frontend whose aim is to ease the development of staged meta programs and their DSL libraries through, among others, shadowing of types. We also explore the usage of this new frontend for a particular case study Staged computation graphs with cycle, dimensions and topology checking at staging time. We observe a signigicant performance improvement at evaluation.</p>
+<p>In this report, we explore staged meta-programming, in particular the LMS framework and the development of its new frontend whose aim is to ease the development of staged meta programs and their DSL libraries through, among others, shadowing of types. We also explore the usage of this new frontend for a particular case study Staged computation graphs with cycle, dimensions and topology checking at staging time. We observe a signigicant performance improvement at evaluation compared to a non-staged program.</p>
 <h1 id="introduction" class="unnumbered">Introduction</h1>
 <p>If programming is an art, then programming languages are the artitst’s brush. The tools are chosen according to individual preferences, but with memory, scaling and performance constraints in mind. One of those major constraints is efficiency. Efficiency is less crucial nowadays than it was back when computing power was expensive and scarce, but it is still a very desirable goal. Efficiency can be achieved by writing explicitly and very precisely each step of the program. To enable this, some programming languages are relatively close from the model of the hardware. Those programming languages are called “low-level”, because close from the machine and thus distant from the heights of abstraction. But as programs grow more complex, the need for abstraction does too.</p>
 <p>To raise abstraction power, expressive languages with complex compilers were made. Ironically, the first programming language, lambda-calculus, was the epitome of abstraction and thought of before the first very computer to execute it. Those languages, mostly from the functional programming world, help the user to express the intent rather than the steps, the “what” rather than the “how”. The compilers needed for them are heavy machineries that applies all sorts of optimizations before translating source code to machine language. The more abstract the language, the more gap there is to fill, and the more compilers have opportunity to optimize.</p>
@@ -238,8 +238,8 @@ cal c: Integer = (a + b) - (a * b)</code></pre></div>
 <img src="new-LMS-org.png" alt="New LMS Org" />
 <p class="caption">New LMS Org</p>
 </div>
-<p>In the previous LMS, we manipulated lifted types Rep[A] and defined specific functions in scope for that particular Rep[A].</p>
-<p>In the new LMS, we manipulate dsl.A that have Rep typeclass instances defined in scope.</p>
+<p>In the previous LMS, we manipulated lifted types <code>Rep[A]</code> and defined specific functions in scope for that particular <code>Rep[A]</code>.</p>
+<p>In the new LMS, we manipulate <code>dsl.A</code> that have Rep typeclass instances defined in scope.</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
 <span class="kw">trait</span> Rep[T] {
 	<span class="kw">type</span> Internal
@@ -281,7 +281,7 @@ cal c: Integer = (a + b) - (a * b)</code></pre></div>
 	<span class="kw">def</span> __equal[A, B](a: A, b:Rep[B]): Rep[Boolean]		
 	<span class="kw">def</span> __equal[A, B](a: A, b:B): Boolean
 	</code></pre></div>
-<p>The Scala choose the right dispatch based on the most specialized definition of __equal. Note that <code>def __equal[A, B](a: A, b:B)</code> is a more general function than all above but only get triggered if none of the above case do not trigger.</p>
+<p>The Scala choose the right dispatch based on the most specialized definition of __equal. Note that <code>def __equal[A, B](a: A, b:B)</code> is a more general function than all above but only gets triggered if none of the above case triggers.</p>
 <p>Now with the typeclass pattern we could attempt such rewrite:</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
 	<span class="kw">def</span> __equal[A:Rep, B:Rep](a: A, b:B): Boolean
@@ -357,14 +357,14 @@ cal c: Integer = (a + b) - (a * b)</code></pre></div>
   }
 }</code></pre></div>
 <h2 id="collections">Collections</h2>
-<p>Containers like <code>List</code> force us to decide between multiple potential and equally valid choice. The first of them is either their IR is a list of expression or if they are an expression of a list (<code>Exp[scala.List[A]]</code> vs <code>scala.List[Exp[A]]</code>). We decide for the former as the latter can be manipulated directly as <code>scala.List[A]</code> with <code>A</code> being a lifted type and do not require a lifted List type.</p>
+<p>Containers like <code>List</code> force us to decide between multiple potential and equally valid choice. The first of them is either their IR is a list of expression or if they are an expression of a list (<code>Exp[scala.List[A]]</code> vs <code>scala.List[Exp[A]]</code>). We decide for the former as the latter can be manipulated directly as <code>scala.List[A]</code> with <code>A</code> being a lifted type and does not require a lifted List type.</p>
 <p>The second issue is the multiplicity of the Lift case. Given that <code>Lift[B,A]</code> is in scope:</p>
 <ul>
 <li><code>scala.List[A]</code> should be able to lift to <code>dsl.List[A]</code></li>
 <li><code>dsl.List[B]</code> should be able to lift to <code>dsl.List[A]</code></li>
 <li><code>scala.List[A]</code> should be able lift to <code>scala.List[A]</code> or <code>dsl.List[A]</code></li>
 </ul>
-<p>We solve this issue by defining a two lifts instead of one:</p>
+<p>We solve this issue by defining two lifts instead of one:</p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">  <span class="kw">implicit</span> <span class="kw">def</span> listLift[U, T](<span class="kw">implicit</span> tp: Rep[T], lift: Lift[U, T])
   : Lift[scala.<span class="fu">List</span>[U], List[T]]
   <span class="kw">implicit</span> <span class="kw">def</span> listLiftIdent[T](<span class="kw">implicit</span> tp: Rep[T]):
@@ -451,13 +451,13 @@ cal c: Integer = (a + b) - (a * b)</code></pre></div>
 
     }</code></pre></div>
 <p><code>AddTimeAble[Data]</code> guarantees that Data has the operations <code>+</code> and <code>*</code> necessary for derivations.</p>
-<p>Here Data can either be either <code>dsl.Int</code> for a staged computation graph or else a simple <code>scala.Int</code> (or at least a wrapper that implements AddTimeAble)</p>
+<p>Here Data can be either <code>dsl.Int</code> for a staged computation graph or else a simple <code>scala.Int</code> (or at least a wrapper that implements AddTimeAble)</p>
 <h2 id="cycle-check">Cycle check</h2>
 <p>A staged computation graph builds the graph during staging. This means that all the verification that should happen during the building of the graph can happen during staging. This adds additional guarantees at runtime, here that our staged computation graph does not contain any cycle.</p>
 <h2 id="arithmetic">Arithmetic</h2>
-<p>We implement a graph with each node being a basic arithmetic operation (+,*,-,%,min,max) and a data type that is upper bounded by a basic arithmetic operation interface such that Int, Double and Float implement it. Those kinds of computation graph are a good sanity check as well as a clear example of the abstraction brought by a computation graph. We will use those arithmetic graphs to do benchmarking of their evaluation time performance as a staged meta-program and as a normal progra. We do not take into account the efficiency of building those graphs and of the safety checks (like cycle check) because we want to measure efficiency in a “build once, evaluate often” context. We also add Constant Nodes that represent some fixed weights inside the graph such that some constant folding might happen. Those constant nodes are a decent way to represent fixed weights in a graph.</p>
+<p>We implement a graph with each node being a basic arithmetic operation (+,*,-,%,min,max) and a data type that is upper bounded by a basic arithmetic operation interface such that Int, Double and Float implement it. Those kinds of computation graph are a good sanity check as well as a clear example of the abstraction brought by a computation graph. We will use those arithmetic graphs to do benchmarking of their evaluation time performance as a staged meta-program and as a normal program. We do not take into account the efficiency of building those graphs and of the safety checks (like cycle check) because we want to measure efficiency in a “build once, evaluate often” context. We also add Constant Nodes that represent some fixed weights inside the graph such that some constant folding might happen. Those constant nodes are a decent way to represent fixed weights in a graph.</p>
 <h3 id="benchmark">Benchmark</h3>
-<p>For benchmarking purposes, we will randomly generate 2000 nodes big graph. The graph are build in a way that they stay balanced: each node is at most input of only 1 more node than any other node. We use Int as the Data type.</p>
+<p>For benchmarking purposes, we will randomly generate 2000 nodes big graphs. The graphs are build in a way that they stay balanced: each node is at most input of only 1 more node than any other node. We use Int as the Data type.</p>
 <p>We compare the non-staged computation graph to a meta-program that benefits from the optimised implementation of lifted Int. The optimised implementation of lifted Int differs from the non optimised optimisation of lift Int by smart-constructors that can optimize some operations such as multiplications with 0 or 1, or addition with 0 or binary operations on constants (Constant folding).</p>
 <p>We build 100 different graph and average the evaluation time to achieve meaningful results. Benchmarks are run on a thinkpad t440s:</p>
 <p>Average evaluation time:</p>
@@ -481,12 +481,12 @@ cal c: Integer = (a + b) - (a * b)</code></pre></div>
 <p>LMS is a powerful meta-programming library that unlocks a wide range of possibilities and among them <strong>abstraction without regret</strong>. Our case study of LMS applied to computation graphs is a good showcase of the performance benefits of that approach while keeping a high degree of abstraction. Eventually, meta-programs might shape a large part of high-performance computing. By enhancing the tools and making the syntax seamless to the user, we hope to see the usage of LMS democratize to a wider range of applications.</p>
 <h1 id="references" class="unnumbered">References</h1>
 <ul>
-<li>Tiark’s thesis: <a href="https://infoscience.epfl.ch/record/180642/files/EPFL_TH5456.pdf">Lightweight Modular Staging and Embedded Compilers: Abstraction without Regret for High-Level High-Performance Programming</a></li>
-<li><a href="https://colah.github.io/posts/2015-08-Backprop/">Calculus on Computational Graphs: Backpropagation</a></li>
-<li><a href="http://ppl.stanford.edu/papers/gpce13-sujeeth.pdf">Forge: Generating a High Performance DSL Implementation from a Declarative Specification</a> Arvind K. Sujeeth, Austin Gibbons, Kevin J. Brown, HyoukJoong Lee, Tiark Rompf, Martin Odersky, and Kunle Olukotun</li>
-<li><a href="http://ppl.stanford.edu/papers/ecoop13_sujeeth.pdf">Composition and Reuse with Compiled Domain-Specific Languages</a> Arvind K. Sujeeth, Tiark Rompf, Kevin J. Brown, HyoukJoong Lee, Hassan Chafi, Victoria Popic, Michael Wu, Aleksander Prokopec, Vojin Jovanovic, Martin Odersky, and Kunle Olukotun</li>
-<li><a href="http://ppl.stanford.edu/papers/popl13_rompf.pdf">Optimizing Data Structures in High-Level Programs: New Directions for Extensible Compilers based on Staging</a> Tiark Rompf, Arvind K. Sujeeth, Nada Amin, Kevin J. Brown, Vojin Jovanovic, HyoukJoong Lee, Manohar Jonnalagedda, Kunle Olukotun, Martin Odersky</li>
-<li><a href="http://ppl.stanford.edu/papers/pact11-brown.pdf">A Heterogeneous Parallel Framework for Domain-Specific Languages</a> Kevin J. Brown, Arvind K. Sujeeth, HyoukJoong Lee, Tiark Rompf, Hassan Chafi, Martin Odersky, Kunle Olukotun</li>
+<li>Tiark’s thesis: <em><a href="https://infoscience.epfl.ch/record/180642/files/EPFL_TH5456.pdf">Lightweight Modular Staging and Embedded Compilers: Abstraction without Regret for High-Level High-Performance Programming</a></em></li>
+<li><em><a href="https://colah.github.io/posts/2015-08-Backprop/">Calculus on Computational Graphs: Backpropagation</a></em></li>
+<li><em><a href="http://ppl.stanford.edu/papers/gpce13-sujeeth.pdf">Forge: Generating a High Performance DSL Implementation from a Declarative Specification</a></em> Arvind K. Sujeeth, Austin Gibbons, Kevin J. Brown, HyoukJoong Lee, Tiark Rompf, Martin Odersky, and Kunle Olukotun</li>
+<li><em><a href="http://ppl.stanford.edu/papers/ecoop13_sujeeth.pdf">Composition and Reuse with Compiled Domain-Specific Languages</a></em> Arvind K. Sujeeth, Tiark Rompf, Kevin J. Brown, HyoukJoong Lee, Hassan Chafi, Victoria Popic, Michael Wu, Aleksander Prokopec, Vojin Jovanovic, Martin Odersky, and Kunle Olukotun</li>
+<li><em><a href="http://ppl.stanford.edu/papers/popl13_rompf.pdf">Optimizing Data Structures in High-Level Programs: New Directions for Extensible Compilers based on Staging</a></em> Tiark Rompf, Arvind K. Sujeeth, Nada Amin, Kevin J. Brown, Vojin Jovanovic, HyoukJoong Lee, Manohar Jonnalagedda, Kunle Olukotun, Martin Odersky</li>
+<li><em><a href="http://ppl.stanford.edu/papers/pact11-brown.pdf">A Heterogeneous Parallel Framework for Domain-Specific Languages</a></em> Kevin J. Brown, Arvind K. Sujeeth, HyoukJoong Lee, Tiark Rompf, Hassan Chafi, Martin Odersky, Kunle Olukotun</li>
 </ul>
 <h1 id="acknowledgement" class="unnumbered">Acknowledgement</h1>
 <p>Thanks to my beloved parents for their continuous support, my awesome supervisor Nada Amin, Prof. Martin Odersky, the LMS master and author Tiark Rompf, and the delite folks Kevin James Brown and David Koeplinger.</p>
