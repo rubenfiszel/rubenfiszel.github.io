@@ -40,6 +40,14 @@
 <li>sensor measurements <span class="math inline">\(\mathbf{z}_t\)</span> coming from different sensors with different sampling rate</li>
 <li>information about the sensors (sensor measurements biases and matrix of covariance)</li>
 </ul>
+<h2 id="sensors">Sensors</h2>
+<p>This work was in collaboration with the ASL Stanford lab for indoor POSE of drones. The sensors at disposition are:</p>
+<ul>
+<li><strong>Accelerometer</strong>: the total acceleration in the body frame referrential the drone is submitted to at a <strong>high</strong> sampling rate.</li>
+<li><strong>Gyroscope</strong>: the angular velocity of the drone at the last timestep at a <strong>high</strong> sampling rate.</li>
+<li><strong>Vicon</strong> or <strong>Tango</strong>: an estimate of the current position and attitute at a <strong>low</strong> sampling rate.</li>
+</ul>
+<p>This work adapts itself easily to other sensors but we will focus here only on those 3.</p>
 <h2 id="quaternions">Quaternions</h2>
 <p>Quaternions are extensions of complex numbers but with 3 imaginary parts. They can be used to represent orientation, also referred to as attitude. Quaternions algebra make rotation composition simple and quaternions avoid the issue of gimbal lock. In all filters presented, they will be used to represent the attitude.</p>
 <h2 id="filtering-and-smoothing">Filtering and smoothing</h2>
@@ -49,6 +57,7 @@
 <p><span class="math display">\[\mathbb{E}[(\mathbf{p}_{0:t}, \mathbf{q}_{0:t}) | (\mathbf{z}_{1:t+k}, \mathbf{u}_{1:t+k})]\]</span></p>
 <p><span class="math inline">\(k\)</span> is a contant and the first observation is <span class="math inline">\(y_1\)</span></p>
 <p><strong>Filtering</strong> is a kind of smoothing where you only have at disposal the current observation variable (<span class="math inline">\(k=0\)</span>)</p>
+<h1 id="complementary-filter">Complementary Filter</h1>
 <h1 id="kalman-filter">Kalman Filter</h1>
 <p>Kalman filters are optimal linear filters.</p>
 <p><strong>TODO</strong></p>
