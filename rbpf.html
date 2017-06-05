@@ -104,9 +104,7 @@
 <li><span class="math inline">\(\boldsymbol{\omega C}\)</span> angular velocity in the body frame from the control input</li>
 </ul>
 <p>Observations from the control input are not strictly speaking measurements but input of the state-transition model</p>
-<h2 id="latent-variable">Latent variable</h2>
-<p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q((\boldsymbol{\omega C}_t+\boldsymbol{ \omega C^\epsilon}_t)*dt)\]</span></p>
-<p>where <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\boldsymbol{\omega C}_t })\)</span></p>
+<h2 id="helper-functions">Helper functions</h2>
 <p>We introduce some helper functions.</p>
 <ul>
 <li><span class="math inline">\(B2F(\mathbf{q}, \mathbf{v})\)</span> is the body to fixed vector rotation. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(q\)</span> and the vector <span class="math inline">\(v\)</span> to be rotated.</li>
@@ -114,6 +112,10 @@
 <li><span class="math inline">\(T2A(t)\)</span> is the scaling from thrust to acceleration (by dividing by the weight of the drone: <span class="math inline">\(\mathbf{F} = m\mathbf{a} \Rightarrow \mathbf{a} = \mathbf{F}/m)\)</span> and then multiplying by a unit vector <span class="math inline">\((0, 0, 1)\)</span></li>
 </ul>
 <p>dt is the lapse of time between t and the next tick (t+1)</p>
+<h2 id="latent-variable">Latent variable</h2>
+<p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q((\boldsymbol{\omega C}_t+\boldsymbol{ \omega C^\epsilon}_t)*dt)\]</span></p>
+<p>where <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\boldsymbol{\omega C}_t })\)</span></p>
+<p>Initial attitude <span class="math inline">\(\mathbf{q_0}\)</span> is sampled such that the drone pitch and roll are none (parralel to the ground) but the yaw is unknown and uniformly distributed.</p>
 <h2 id="model-dynamics">Model dynamics</h2>
 <p><span class="math inline">\(\mathbf{w}_t\)</span> is our process noise (wind, etc ...)</p>
 <ul>
