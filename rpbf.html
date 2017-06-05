@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="Ruben Fiszel" />
+  <title>POSE estimation through Rao-Blackwellized Particle filter.</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="markdown3.css" type="text/css" />
+  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML-full" type="text/javascript"></script>
+</head>
+<body>
+<div id="header">
+<h1 class="title">POSE estimation through Rao-Blackwellized Particle filter.</h1>
+<h2 class="author">Ruben Fiszel</h2>
+</div>
+<h1 id="introduction">Introduction</h1>
+<p>We will introduce here several filter for POSE estimation for highly dynamic objects and in particular drones. The order is from the most conceptually simple, to the most complex. The Rao-Blackwellized Particle filter can be viewed as a superset of many other filters, where those filters are just instances of a particle filter with only one particle.</p>
+<h2 id="notes-on-notation-and-conventions">Notes on notation and conventions</h2>
+<p>The referential by default is the fixed world frame.</p>
+<ul>
+<li><span class="math inline">\(\mathbf{x}\)</span> designates a vector</li>
+<li><span class="math inline">\(x_t\)</span> is the random variable of x at time t</li>
+<li><span class="math inline">\(x_{t1:t2}\)</span> is the product of the random variable of x between t1 included and t2 included</li>
+<li><span class="math inline">\(x^{(i)}\)</span> designates the random variable x of the arbitrary particle i</li>
+</ul>
+<h2 id="pose">POSE</h2>
+<p>POSE is the task of determining the position and orientation of an object through time. It is a subroutine of SLAM (Software Localization And Mapping). We can formelize the problem as:</p>
+<p>At each timestep, find the best expectation of a function of the hidden variable state (position and orientation), from their initial distribution and observable random variables (such as sensor measurements).</p>
+<ul>
+<li>The state <span class="math inline">\(\mathbf{x}\)</span></li>
+<li>The function <span class="math inline">\(g(\mathbf{x})\)</span> such that <span class="math inline">\(g(\mathbf{x}_t) = (\mathbf{p}_t, \mathbf{q}_t)\)</span> where <span class="math inline">\(\mathbf{p}\)</span> is the position and <span class="math inline">\(\mathbf{q}\)</span> is the attitude as a quaternion.</li>
+<li>The observable variable <span class="math inline">\(\mathbf{y}\)</span> composed of the sensor measurements <span class="math inline">\(\mathbf{z}\)</span> and the control input <span class="math inline">\(\mathbf{u}\)</span></li>
+</ul>
+<p>The algorithm inputs are:</p>
+<ul>
+<li>The distribution of initial position <span class="math inline">\(p_0\)</span> and orientation <span class="math inline">\(q_0\)</span></li>
+<li>control inputs <span class="math inline">\(u_t\)</span> (the command sent to the flight controller)</li>
+<li>sensor measurements <span class="math inline">\(z_t\)</span> coming from different sensors with different sampling rate</li>
+<li>information about the sensors (sensor measurements biases and matrix of covariance)</li>
+</ul>
+<h2 id="quaternions">Quaternions</h2>
+<p>Quaternions are extensions of complex numbers but with 3 imaginary parts. They can be used to represent orientation, also referred to as attitude. Quaternions algebra make rotation composition simple and quaternions avoid the issue of gimbal lock. In all filters presented, they will be used to represent the attitude.</p>
+<h2 id="filtering-and-smoothing">Filtering and smoothing</h2>
+<p><strong>Smoothing</strong> is the statistical task of finding the expectation of the state variable from multiple observation variable ahead.</p>
+<p><span class="math display">\[\mathbb{E}[g(\mathbf{x}_{0:t}) | \mathbf{y}_{1:t+k}]\]</span></p>
+<p>Which expand to,</p>
+<p><span class="math display">\[\mathbb{E}[(\mathbf{p}_{0:t}, \mathbf{q}_{0:t}) | (\mathbf{z}_{1:t+k}, \mathbf{u}_{1:t+k})]\]</span></p>
+<p><span class="math inline">\(k\)</span> is a contant and the first observation is <span class="math inline">\(y_1\)</span></p>
+<p><strong>Filtering</strong> is a kind of smoothing where you only have at disposal the current observation variable (<span class="math inline">\(k=0\)</span>)</p>
+<h1 id="kalman-filter">Kalman Filter</h1>
+<p>Kalman filters are optimal linear filters.</p>
+<p><strong>TODO</strong></p>
+<h2 id="linearity">Linearity</h2>
+<p>Kalman filters are non optimal for our problem because our state has some non-linear components (attitude).</p>
+<p>Indeed, rotations belong to <span class="math inline">\(SO(3)\)</span>. It can be shown intuitively that they do not belong to a vector space because the sum of two unit quaternions is not a unit quaternion (not closed under addition). <strong>TODO</strong></p>
+<h2 id="extended-kalman-filters">Extended Kalman Filters</h2>
+<p>EKF are linearized Kalman filters of the first order.</p>
+<p><strong>TODO</strong></p>
+<h2 id="unscented-kalman-filters">Unscented Kalman Filters</h2>
+<p><strong>TODO</strong></p>
+<h1 id="particle-filter">Particle Filter</h1>
+<p>Particle filters are monte carlo methods which in their general form ... <strong>TODO</strong></p>
+<p><strong>TODO</strong></p>
+<h2 id="resampling">Resampling</h2>
+<p>When the number of effective particles is too low (<span class="math inline">\(N/10\)</span>), we apply systematic resampling</p>
+<h2 id="rao-blackwellized-particle-filter">Rao-Blackwellized Particle Filter</h2>
+<h3 id="introduction-1">Introduction</h3>
+<p>Compared to a plain PF, RPBF leverage the linearity of some components of the state by assuming our model gaussian conditionned on a latent variable: Given the attitude <span class="math inline">\(q_t\)</span>, our model is linear. This is where RPBF shines: We use particle filtering to estimate our latent variable, the attitude, and we use the optimal kalman filter to estimate the state variable.</p>
+<p>We introduce the latent variable <span class="math inline">\(\boldsymbol{\theta}\)</span></p>
+<p>The latent variable <span class="math inline">\(\boldsymbol{\theta}\)</span> has for sole component the attitude: <span class="math display">\[\boldsymbol{\theta} = (\mathbf{q})\]</span></p>
+<p><span class="math inline">\(q_t\)</span> is estimated from the product of the attitude of all particles <span class="math inline">\(\mathbf{\theta^{(i)}} = \mathbf{q}^{(i)}_t\)</span> as the &quot;average&quot; quaternion <span class="math inline">\(\mathbf{q}_t = avgQuat(\mathbf{q}^n_t)\)</span>. <span class="math inline">\(x^n\)</span> designates the product of all n arbitrary particle. The average quaternion is not simply the average of its components ... <strong>TODO</strong></p>
+<p>We use importance sampling ... <strong>TODO</strong></p>
+<p>The weight definition is:</p>
+<p><span class="math display">\[w^{(i)}_t = \frac{p(\boldsymbol{\theta}^{(i)}_{0:t} | \mathbf{y}_{1:t})}{\pi(\boldsymbol{\theta}^{(i)}_{0:t} | \mathbf{y}_{1:t})}\]</span></p>
+<p>From the definition, it is proovable that:</p>
+<p><span class="math display">\[w^{(i)}_t \propto \frac{p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})p(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{t-1})}{\pi(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{1:t-1}, \mathbf{y}_{1:t})} w^{(i)}_{t-1}\]</span></p>
+<p>We choose the dynamic of the model as the importance distribution:</p>
+<p><span class="math display">\[\pi(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{1:t-1}, \mathbf{y}_{1:t}) = p(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{t-1}) \]</span></p>
+<p>Hence,</p>
+<p><span class="math display">\[w^{(i)}_t \propto p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\]</span></p>
+<p>We then sum all <span class="math inline">\(w^{(i)}_t\)</span> to find the normalization constant and retrieve the actual <span class="math inline">\(w^{(i)}_t\)</span></p>
+<h2 id="state">State</h2>
+<p><span class="math display">\[\mathbf{x}_t = (\mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t)\]</span></p>
+<ul>
+<li><span class="math inline">\(\mathbf{a}\)</span> acceleration</li>
+<li><span class="math inline">\(\mathbf{v}\)</span> velocity</li>
+<li><span class="math inline">\(\mathbf{p}\)</span> position</li>
+</ul>
+<p>Initial position <span class="math inline">\(\mathbf{p_0}\)</span> at (0, 0, 0)</p>
+<h2 id="observations">Observations</h2>
+<p><span class="math display">\[\mathbf{y}_t = (\mathbf{aA}_t, \boldsymbol{\omega G}_t, \mathbf{pV}_t, \mathbf{qV}_t, tC_t, \boldsymbol{\omega C}_t)\]</span></p>
+<h3 id="measurements">Measurements</h3>
+<ul>
+<li><span class="math inline">\(\mathbf{aA}\)</span> acceleration from the accelerometer in the body frame</li>
+<li><span class="math inline">\(\boldsymbol{\omega G}\)</span> angular velocity from the gyroscope in the body frame</li>
+<li><span class="math inline">\(\mathbf{pV}\)</span> position from the vicon</li>
+<li><span class="math inline">\(\mathbf{qV}\)</span> attitude from the vicon</li>
+</ul>
+<h3 id="control-inputs">Control Inputs</h3>
+<ul>
+<li><span class="math inline">\(tC\)</span> thrust (as a scalar) in the direction of the attitude from the control input.</li>
+<li><span class="math inline">\(\boldsymbol{\omega C}\)</span> angular velocity in the body frame from the control input</li>
+</ul>
+<p>Observations from the control input are not strictly speaking measurements but input of the state-transition model</p>
+<h2 id="latent-variable">Latent variable</h2>
+<p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q((\boldsymbol{\omega C}_t+\boldsymbol{ \omega C^\epsilon}_t)*dt)\]</span></p>
+<p>where <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\boldsymbol{\omega C}_t })\)</span></p>
+<p>We introduce some helper functions.</p>
+<ul>
+<li><span class="math inline">\(B2F(\mathbf{q}, \mathbf{v})\)</span> is the body to fixed vector rotation. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(q\)</span> and the vector <span class="math inline">\(v\)</span> to be rotated.</li>
+<li><span class="math inline">\(F2B(\mathbf{q}, \mathbf{v})\)</span> is its inverse function (from fixed to body).</li>
+<li><span class="math inline">\(T2A(t)\)</span> is the scaling from thrust to acceleration (by dividing by the weight of the drone: <span class="math inline">\(\mathbf{F} = m\mathbf{a} \Rightarrow \mathbf{a} = \mathbf{F}/m)\)</span> and then multiplying by a unit vector <span class="math inline">\((0, 0, 1)\)</span></li>
+</ul>
+<p>dt is the lapse of time between t and the next tick (t+1)</p>
+<h2 id="model-dynamics">Model dynamics</h2>
+<p><span class="math inline">\(\mathbf{w}_t\)</span> is our process noise (wind, etc ...)</p>
+<ul>
+<li><span class="math inline">\(\mathbf{a}(t+1) = B2F(\mathbf{q}(t+1), T2A(tC(t+1))) + \mathbf{w}_{\mathbf{a}_t}\)</span></li>
+<li><span class="math inline">\(\mathbf{v}(t+1) = \mathbf{v}(t) + \mathbf{a}(t)*dt + \mathbf{w}_{\mathbf{v}_t}\)</span></li>
+<li><span class="math inline">\(\mathbf{p}(t+1) = \mathbf{p}(t) + \mathbf{v}(t)*dt + \mathbf{w}_{\mathbf{p}_t}\)</span></li>
+</ul>
+<p>Note that <span class="math inline">\(\mathbf{q}(t+1)\)</span> is known because the model is conditionned under <span class="math inline">\(\boldsymbol{\theta}^{(i)}_{t+1}\)</span>.</p>
+<p>The model dynamic define the state-transition matrix <span class="math inline">\(\mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t)\)</span>, the control-input matrix <span class="math inline">\(\mathbf{B}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> and the process noise <span class="math inline">\(\mathbf{w}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> for the Kalman filter.</p>
+<p><strong>TODO</strong>: write the 3 matrices explicitely</p>
+<h3 id="kalman-prediction">Kalman prediction</h3>
+<p><span class="math display">\[ \mathbf{m}^{-(i)}_t = \mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_{t-1} + \mathbf{B}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{u}_t \]</span> <span class="math display">\[ \mathbf{P}^{-(i)}_t = \mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_{t-1}  (\mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{w}_t(\boldsymbol{\theta}^{(i)}_t)\]</span></p>
+<h2 id="measurements-model">Measurements model</h2>
+<p>The measurement model defines how to compute <span class="math inline">\(p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})\)</span></p>
+<ul>
+<li>Vicon:
+<ol style="list-style-type: decimal">
+<li><span class="math inline">\(\mathbf{p}(t) = \mathbf{pV}(t) + \mathbf{pV}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{pV}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{pV}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{qV}(t) + \mathbf{qV}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{qV}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{qV}_t })\)</span></li>
+</ol></li>
+<li>Gyroscope:
+<ol start="3" style="list-style-type: decimal">
+<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{q}(t-1) + (\boldsymbol{\omega G}(t) + \boldsymbol{\omega G}^\epsilon_t)*dt\)</span> where <span class="math inline">\(\boldsymbol{\omega G^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\boldsymbol{\omega G}_t })\)</span></li>
+</ol></li>
+<li>Accelerometer:
+<ol start="4" style="list-style-type: decimal">
+<li><span class="math inline">\(\mathbf{a}(t) = B2F(\mathbf{q}(t), aA(t) + \mathbf{aA}^\epsilon_t)\)</span> where <span class="math inline">\(\mathbf{aA}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{aA}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{g}^f(t) = B2F(\mathbf{q}(t), \mathbf{aA}(t) + \mathbf{aA}^\epsilon_t) - \mathbf{a}(t)\)</span> where <span class="math inline">\(\mathbf{aA}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{aA}_t })\)</span></li>
+</ol></li>
+</ul>
+<p>(1, 2, 4) define the observation matrix <span class="math inline">\(\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> and the observation noise <span class="math inline">\(\mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> for the Kalman filter.</p>
+<p><strong>TODO</strong>: write the 3 matrices explicitely</p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(1, 2, 4)}_t; \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_t, \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_t  (\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t))\]</span></p>
+<p><span class="math inline">\(\mathbf{z}^{(1, 2, 4)}\)</span> means component 1, 2 and 4 of <span class="math inline">\(\mathbf{z}\)</span>.</p>
+<h3 id="asynchronous-measurements">Asynchronous measurements</h3>
+<p>Our measurements have different sampling rate so instead of doing full kalman update, we only apply a partial kalman update corresponding to the current type of measurement <span class="math inline">\(\mathbf{z}_t\)</span></p>
+<h3 id="other-sources-or-reweighting">Other sources or reweighting</h3>
+<p>(3 and 5) defines two other weight updates.</p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(3)}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/dt, \mathbf{R}_{\boldsymbol{\omega G}_t})\]</span></p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(5)}_t; F2B(\mathbf{q}^{(i)}_t, \mathbf{g}) + \mathbf{a}^{(i)}_t, \mathbf{R}_{\mathbf{aA}_t} + \mathbf{Pa}^{-(i)}_t)\]</span></p>
+<p><strong>TODO</strong>: Check that matrix of covariance is correct for 5. Found covariance as covariance of sum of normal but seems too simple.</p>
+<p>where <span class="math inline">\(\mathbf{Pa}^{-(i)}_t\)</span> is the variance of <span class="math inline">\(\mathbf{a}\)</span> in <span class="math inline">\(\mathbf{P}^{-(i)}_t\)</span> and <span class="math inline">\(\mathbf{g}\)</span> is the gravity vector.</p>
+<h2 id="kalman-update">Kalman update</h2>
+<p><strong>TODO</strong>: plain kalman update matrix operations.</p>
+<h2 id="algorithm-summary">Algorithm summary</h2>
+<ol style="list-style-type: decimal">
+<li>Initiate <span class="math inline">\(N\)</span> particles with <span class="math inline">\(p_0\)</span>, <span class="math inline">\(q_0 ~ sim p(q_0)\)</span>, <span class="math inline">\(P_0\)</span> and <span class="math inline">\(w = 1/N\)</span></li>
+<li>While new sensor measurements <span class="math inline">\((\mathbf{z}_t, \mathbf{u}_t)\)</span></li>
+</ol>
+<ul>
+<li>foreach <span class="math inline">\(N\)</span> particles <span class="math inline">\((i)\)</span>:
+<ol style="list-style-type: decimal">
+<li>sample new latent variable <span class="math inline">\(\boldsymbol{\theta_t}\)</span> from <span class="math inline">\(\mathbf{u}_t\)</span></li>
+<li>Depending on the type of measurement:
+<ul>
+<li><strong>Gyroscope</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(3)}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/dt, \mathbf{R}_{\boldsymbol{\omega G}_t})\]</span></li>
+<li><strong>Vicon</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(1, 2, 4)}_t; \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_t, \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_t  (\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t))\]</span> and update particle state with a partial/full kalman prediction and update</li>
+<li><strong>Accelerometer</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(1, 2, 4)}_t; \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_t, \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_t  (\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t))\]</span> from the acceleration information and update particle state with a partial/full kalman prediction and update, and then a new <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(5)}_t; F2B(\mathbf{q}^{(i)}_t, \mathbf{g}) + \mathbf{a}^{(i)}_t, \mathbf{R}_{\mathbf{aA}_t} + \mathbf{Pa}^{-(i)}_t) p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})\]</span> from the orientation information</li>
+</ul></li>
+<li>Update <span class="math inline">\(w^{(i)}_t\)</span> as <span class="math inline">\(w^{(i)}_t = p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\)</span><br />
+</li>
+</ol></li>
+<li>Compute <span class="math inline">\(\mathbf{p}_t\)</span> and <span class="math inline">\(\mathbf{q}_t\)</span> as the expectation from the distribution approximated by the N particles.</li>
+<li>Resample if the number of effective particle is too low</li>
+</ul>
+</body>
+</html>
