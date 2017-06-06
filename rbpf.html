@@ -224,6 +224,7 @@
 <li>Update <span class="math inline">\(w^{(i)}_t\)</span>: <span class="math inline">\(w^{(i)}_t = p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\)</span><br />
 </li>
 </ol></li>
+<li>Normalize all <span class="math inline">\(w^{(i)}\)</span> by scalaing by <span class="math inline">\(1/(\sum w^{(i)})\)</span> such that <span class="math inline">\(\sum w^{(i)}= 1\)</span></li>
 <li>Compute <span class="math inline">\(\mathbf{p}_t\)</span> and <span class="math inline">\(\mathbf{q}_t\)</span> as the expectation from the distribution approximated by the N particles.</li>
 <li>Resample if the number of effective particle is too low</li>
 </ul>
