@@ -165,20 +165,19 @@
 <ul>
 <li>Accelerometer:
 <ol style="list-style-type: decimal">
-<li><span class="math inline">\(\mathbf{a}(t) = \mathbf{R}_{b2f}\{\mathbf{q}(t)\}(\mathbf{a_A}(t) + \mathbf{a_A}^\epsilon_t)\)</span> where <span class="math inline">\(\mathbf{a_A}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{a_A}_t })\)</span></li>
-<li><span class="math inline">\(\mathbf{g}^f(t) = \mathbf{R}_{b2f}\{\mathbf{q}(t)\}(\mathbf{a_A}(t) + \mathbf{a_A}^\epsilon_t) - \mathbf{a}(t)\)</span></li>
+<li><span class="math inline">\(\mathbf{a_A}(t) = \mathbf{R}_{f2b}\{\mathbf{q}(t)\}\mathbf{a}(t) + \mathbf{a_A}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{a_A}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{a_A}_t })\)</span></li>
 </ol></li>
 <li>Gyroscope:
-<ol start="3" style="list-style-type: decimal">
-<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{q}(t-1) + \Delta t(\mathbf{\boldsymbol{\omega}_G}(t) + \mathbf{\boldsymbol{\omega}_G}^\epsilon_t)\)</span> where <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t })\)</span></li>
+<ol start="2" style="list-style-type: decimal">
+<li><span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}(t) = (\mathbf{q}^{(i)}(t) - \mathbf{q}^{(i)}_{t-1})/\Delta t + \mathbf{\boldsymbol{\omega}_G}^\epsilon(t)\)</span></li>
 </ol></li>
 <li>Vicon:
-<ol start="4" style="list-style-type: decimal">
-<li><span class="math inline">\(\mathbf{p}(t) = \mathbf{p_V}(t) + \mathbf{p_V}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{p_V}_t })\)</span></li>
-<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{q_V}(t) + \mathbf{q_V}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{q_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{q_V}_t })\)</span></li>
+<ol start="3" style="list-style-type: decimal">
+<li><span class="math inline">\(\mathbf{p_V}(t) = \mathbf{p}(t)^{(i)} + \mathbf{p_V}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{p_V}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{q_V}(t) = \mathbf{q}(t)^{(i)} + \mathbf{q_V}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{q_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{q_V}_t })\)</span></li>
 </ol></li>
 </ul>
-<p>(1, 4) define the observation matrix <span class="math inline">\(\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the observation noise <span class="math inline">\(\mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> and its covariance matrix <span class="math inline">\(\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter.</p>
+<p>(1, 3) define the observation matrix <span class="math inline">\(\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the observation noise <span class="math inline">\(\mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> and its covariance matrix <span class="math inline">\(\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter.</p>
 <p><span class="math display">\[(\mathbf{a_A}_t, \mathbf{p_V}_t)^T  = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} (\mathbf{a}_t, \mathbf{p}_t)^T + \mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
 <p><span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{6 \times 6} = 
 \left( \begin{array}{ccc}
@@ -187,7 +186,7 @@
 \end{array} \right)\]</span></p>
 <p><span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{6 \times 6} = 
 \left( \begin{array}{ccc}
-\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } &amp; \mathbf{0}_{3 \times 3} \\
+\mathbf{R}_{\mathbf{a_A}_t } &amp; \mathbf{0}_{3 \times 3} \\
 \mathbf{0}_{3 \times 3} &amp; \mathbf{R}_{\mathbf{p_V}_t }
 \end{array} \right)\]</span></p>
 <h3 id="kalman-update">Kalman update</h3>
@@ -200,12 +199,9 @@
 <li><p>for <span class="math inline">\(\mathbf{p_V}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{p_V}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></p></li>
 </ul>
 <h2 id="other-sources-or-reweighting">Other sources or reweighting</h2>
-<p>(2, 3 and 5) defines three other weight updates.</p>
-<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_t\}\mathbf{g} + \mathbf{a}^{(i)}_t,~ \mathbf{R}_{\mathbf{a_A}_t} + \mathbf{Pa}^{-(i)}_t)\]</span></p>
+<p>(2 and 4) defines two other weight updates.</p>
 <p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{\boldsymbol{\omega}_G}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/\Delta t,~ \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t})\]</span></p>
 <p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t })\]</span></p>
-<p><strong>TODO</strong>: Check that matrix of covariance is correct for 5. Found covariance as covariance of sum of normal but seems too simple.</p>
-<p>where <span class="math inline">\(\mathbf{Pa}^{-(i)}_t\)</span> is the variance of <span class="math inline">\(\mathbf{a}\)</span> in <span class="math inline">\(\mathbf{\Sigma}^{-(i)}_t\)</span> and <span class="math inline">\(\mathbf{g}\)</span> is the gravity vector.</p>
 <h2 id="algorithm-summary">Algorithm summary</h2>
 <ol style="list-style-type: decimal">
 <li>Initiate <span class="math inline">\(N\)</span> particles with <span class="math inline">\(\mathbf{p}_0\)</span>, <span class="math inline">\(\mathbf{q}_0 ~ \sim p(\mathbf{q}_0)\)</span>, <span class="math inline">\(\mathbf{\Sigma}_0\)</span> and <span class="math inline">\(w = 1/N\)</span></li>
@@ -217,9 +213,9 @@
 <li>sample new latent variable <span class="math inline">\(\boldsymbol{\theta_t}\)</span> from <span class="math inline">\(\mathbf{u}_t\)</span></li>
 <li>Depending on the type of measurement:
 <ul>
-<li><strong>Accelerometer</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^- = \mathcal{N}(\mathbf{a_A}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_t\}\mathbf{g} + \mathbf{a}^{(i)}_t, \mathbf{R}_{\mathbf{a_A}_t} + \mathbf{Pa}^{-(i)}_t) p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^-\]</span></li>
+<li><strong>Accelerometer</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} ~~~~ \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></li>
 <li><strong>Gyroscope</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{\boldsymbol{\omega}_G}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/\Delta t,~ \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t})\]</span></li>
-<li><strong>Vicon</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^- = \mathcal{N}(\mathbf{p_V}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t }) p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^-\]</span></li>
+<li><strong>Vicon</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} ~~~~ \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^- = \mathcal{N}(\mathbf{p_V}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t }) p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^-\]</span></li>
 </ul></li>
 <li>Update <span class="math inline">\(w^{(i)}_t\)</span>: <span class="math inline">\(w^{(i)}_t = p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\)</span><br />
 </li>
