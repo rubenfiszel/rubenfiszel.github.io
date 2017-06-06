@@ -47,6 +47,11 @@
 <li><strong>Gyroscope</strong>: the angular velocity of the drone at the last timestep at a <strong>high</strong> sampling rate.</li>
 <li><strong>Vicon</strong> or <strong>Tango</strong>: an estimate of the current position and attitute at a <strong>low</strong> sampling rate.</li>
 </ul>
+<p>The control inputs at disposition are:</p>
+<ul>
+<li><strong>Thrust</strong>: The current thrust in the direction of the orientation of the drone the motors should create.</li>
+<li><strong>Angular velocity</strong>: The angular velocity the motors should create.</li>
+</ul>
 <p>This work adapts itself easily to other sensors but we will focus here only on those 3.</p>
 <h2 id="quaternions">Quaternions</h2>
 <p>Quaternions are extensions of complex numbers but with 3 imaginary parts. They can be used to represent orientation, also referred to as attitude. Quaternions algebra make rotation composition simple and quaternions avoid the issue of gimbal lock. In all filters presented, they will be used to represent the attitude.</p>
@@ -70,6 +75,7 @@
 <h2 id="unscented-kalman-filters">Unscented Kalman Filters</h2>
 <p><strong>TODO</strong></p>
 <h1 id="particle-filter">Particle Filter</h1>
+<p>Particle filters are computionally expensive and that is why their usage is not very popular currently for low-powered embedded systems.</p>
 <p>Particle filters are monte carlo methods which in their general form ... <strong>TODO</strong></p>
 <p><strong>TODO</strong></p>
 <h2 id="resampling">Resampling</h2>
@@ -91,7 +97,7 @@
 <p><span class="math display">\[w^{(i)}_t \propto p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\]</span></p>
 <p>We then sum all <span class="math inline">\(w^{(i)}_t\)</span> to find the normalization constant and retrieve the actual <span class="math inline">\(w^{(i)}_t\)</span></p>
 <h2 id="state">State</h2>
-<p><span class="math display">\[\mathbf{x}_t = (\mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t)\]</span></p>
+<p><span class="math display">\[\mathbf{x}_t = (\mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t)^T\]</span></p>
 <ul>
 <li><span class="math inline">\(\mathbf{a}\)</span> acceleration</li>
 <li><span class="math inline">\(\mathbf{v}\)</span> velocity</li>
@@ -99,79 +105,110 @@
 </ul>
 <p>Initial position <span class="math inline">\(\mathbf{p_0}\)</span> at (0, 0, 0)</p>
 <h2 id="observations">Observations</h2>
-<p><span class="math display">\[\mathbf{y}_t = (\mathbf{aA}_t, \boldsymbol{\omega G}_t, \mathbf{pV}_t, \mathbf{qV}_t, tC_t, \boldsymbol{\omega C}_t)\]</span></p>
-<h2 id="measurements">Measurements</h2>
+<p><span class="math display">\[\mathbf{y}_t = (\mathbf{z}_t, \mathbf{u}_t)^T = ((\mathbf{a_A}_t, \mathbf{\boldsymbol{\omega}_G}_t, \mathbf{p_V}_t, \mathbf{q_V}_t), ({t_C}_t, \mathbf{\boldsymbol{\omega}_C}_t))^T\]</span></p>
+<h3 id="measurements">Measurements</h3>
 <ul>
-<li><span class="math inline">\(\mathbf{aA}\)</span> acceleration from the accelerometer in the body frame</li>
-<li><span class="math inline">\(\boldsymbol{\omega G}\)</span> angular velocity from the gyroscope in the body frame</li>
-<li><span class="math inline">\(\mathbf{pV}\)</span> position from the vicon</li>
-<li><span class="math inline">\(\mathbf{qV}\)</span> attitude from the vicon</li>
+<li><span class="math inline">\(\mathbf{a_A}\)</span> acceleration from the accelerometer in the body frame</li>
+<li><span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}\)</span> angular velocity from the gyroscope in the body frame</li>
+<li><span class="math inline">\(\mathbf{p_V}\)</span> position from the vicon</li>
+<li><span class="math inline">\(\mathbf{q_V}\)</span> attitude from the vicon</li>
 </ul>
-<h2 id="control-inputs">Control Inputs</h2>
+<h3 id="control-inputs">Control Inputs</h3>
 <ul>
-<li><span class="math inline">\(tC\)</span> thrust (as a scalar) in the direction of the attitude from the control input.</li>
-<li><span class="math inline">\(\boldsymbol{\omega C}\)</span> angular velocity in the body frame from the control input</li>
+<li><span class="math inline">\({t_C}\)</span> thrust (as a scalar) in the direction of the attitude from the control input.</li>
+<li><span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}\)</span> angular velocity in the body frame from the control input</li>
 </ul>
 <p>Observations from the control input are not strictly speaking measurements but input of the state-transition model</p>
-<h2 id="helper-functions">Helper functions</h2>
-<p>We introduce some helper functions.</p>
+<h2 id="helper-matrices">Helper Matrices</h2>
+<p>We introduce some helper matrices.</p>
 <ul>
-<li><span class="math inline">\(B2F(\mathbf{q}, \mathbf{v})\)</span> is the body to fixed vector rotation. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(q\)</span> and the vector <span class="math inline">\(v\)</span> to be rotated.</li>
-<li><span class="math inline">\(F2B(\mathbf{q}, \mathbf{v})\)</span> is its inverse function (from fixed to body).</li>
-<li><span class="math inline">\(T2A(t)\)</span> is the scaling from thrust to acceleration (by dividing by the weight of the drone: <span class="math inline">\(\mathbf{F} = m\mathbf{a} \Rightarrow \mathbf{a} = \mathbf{F}/m)\)</span> and then multiplying by a unit vector <span class="math inline">\((0, 0, 1)\)</span></li>
+<li><span class="math inline">\(\mathbf{R}_{b2f}\{\mathbf{q}\}\)</span> is the body to fixed vector rotation matrix. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(q\)</span>.</li>
+<li><span class="math inline">\(\mathbf{R}_{f2b}\{\mathbf{q}\}\)</span> is its inverse matrix (from fixed to body).</li>
+<li><span class="math inline">\(\mathbf{T}_{2a} = (0, 0, 1/m)^T\)</span> is the scaling from thrust to acceleration (by dividing by the weight of the drone: <span class="math inline">\(\mathbf{F} = m\mathbf{a} \Rightarrow \mathbf{a} = \mathbf{F}/m)\)</span> and then multiplying by a unit vector <span class="math inline">\((0, 0, 1)\)</span></li>
 </ul>
-<p>dt is the lapse of time between t and the next tick (t+1)</p>
+<p><span class="math inline">\(\Delta t\)</span> is the lapse of time between t and the next tick (t+1)</p>
 <h2 id="latent-variable">Latent variable</h2>
-<p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q((\boldsymbol{\omega C}_t+\boldsymbol{ \omega C^\epsilon}_t)*dt)\]</span></p>
-<p>where <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\boldsymbol{\omega C^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\boldsymbol{\omega C}_t })\)</span></p>
+<p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q((\mathbf{\boldsymbol{\omega}_C}_t+\mathbf{\boldsymbol{\omega}_C}^\epsilon_t)*\Delta t)\]</span></p>
+<p>Where R2Q is a function that convert from radians of the angular rotation, to a quaternion and <span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_C}_t })\)</span></p>
 <p>Initial attitude <span class="math inline">\(\mathbf{q_0}\)</span> is sampled such that the drone pitch and roll are none (parralel to the ground) but the yaw is unknown and uniformly distributed.</p>
 <h2 id="model-dynamics">Model dynamics</h2>
-<p><span class="math inline">\(\mathbf{w}_t\)</span> is our process noise (wind, etc ...)</p>
 <ul>
-<li><span class="math inline">\(\mathbf{a}(t+1) = B2F(\mathbf{q}(t+1), T2A(tC(t+1))) + \mathbf{w}_{\mathbf{a}_t}\)</span></li>
-<li><span class="math inline">\(\mathbf{v}(t+1) = \mathbf{v}(t) + \mathbf{a}(t)*dt + \mathbf{w}_{\mathbf{v}_t}\)</span></li>
-<li><span class="math inline">\(\mathbf{p}(t+1) = \mathbf{p}(t) + \mathbf{v}(t)*dt + \mathbf{w}_{\mathbf{p}_t}\)</span></li>
+<li><span class="math inline">\(\mathbf{a}(t+1) = \mathbf{R}_{b2f}\{\mathbf{q}(t+1)\}\mathbf{T}_{2a} {t_C}(t+1) + \mathbf{a}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{a}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{a}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{v}(t+1) = \mathbf{v}(t) + \Delta t \mathbf{a}(t) + \mathbf{v}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{v}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{v}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{p}(t+1) = \mathbf{p}(t) + \Delta t \mathbf{v}(t) + \mathbf{p}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{p}_t })\)</span></li>
 </ul>
 <p>Note that <span class="math inline">\(\mathbf{q}(t+1)\)</span> is known because the model is conditionned under <span class="math inline">\(\boldsymbol{\theta}^{(i)}_{t+1}\)</span>.</p>
-<p>The model dynamic define the state-transition matrix <span class="math inline">\(\mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t)\)</span>, the control-input matrix <span class="math inline">\(\mathbf{B}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> and the process noise <span class="math inline">\(\mathbf{w}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> for the Kalman filter.</p>
-<p><strong>TODO</strong>: write the 3 matrices explicitely</p>
+<p>The model dynamic define the state-transition matrix <span class="math inline">\(\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the control-input matrix <span class="math inline">\(\mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the process noise <span class="math inline">\(\mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter and its covariance <span class="math inline">\(\mathbf{Q}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span></p>
+<p><span class="math display">\[\mathbf{x}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}_{t-1} + \mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{u}_t + \mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
+<p><span class="math display">\[\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\}_{9 \times 9} = 
+\left( \begin{array}{ccc}
+\mathbf{0}_{3 \times 3} &amp; \mathbf{0}_{3 \times 3} &amp; \mathbf{0}_{3 \times 3} \\
+\Delta t~\mathbf{I}_{3 \times 3} &amp; \mathbf{I}_{3 \times 3} &amp; \mathbf{0}_{3 \times 3} \\
+\mathbf{0}_{3 \times 3} &amp; \Delta t~\mathbf{I}_{3 \times 3} &amp; \mathbf{I}_{3 \times 3}
+\end{array} \right)\]</span></p>
+<p><span class="math display">\[\mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\}_{9 \times 4} = 
+\left( \begin{array}{ccc}
+\mathbf{0}_{3 \times 3} &amp; \mathbf{R}_{b2f}\{\mathbf{q}^{(i)}_{t}\}\mathbf{T}_{2a} \\
+\mathbf{0}_{3 \times 3} &amp; \mathbf{0}_{3 \times 1} \\
+\mathbf{0}_{3 \times 3} &amp; \mathbf{0}_{3 \times 1}
+\end{array} \right)\]</span></p>
+<p><span class="math display">\[\mathbf{Q}_t\{\boldsymbol{\theta}^{(i)}_t\}_{9 \times 9} = 
+\left( \begin{array}{ccc}
+\mathbf{Q}_{\mathbf{a}_t } &amp; \mathbf{0}_{3 \times 3} &amp; \mathbf{0}_{3 \times 3} \\
+\mathbf{0}_{3 \times 3} &amp; \mathbf{Q}_{\mathbf{v}_t } &amp; \mathbf{0}_{3 \times 3} \\
+\mathbf{0}_{3 \times 3} &amp; \mathbf{0}_{3 \times 3} &amp; \mathbf{Q}_{\mathbf{p}_t }
+\end{array} \right)\]</span></p>
 <h2 id="kalman-prediction">Kalman prediction</h2>
-<p><span class="math display">\[ \mathbf{m}^{-(i)}_t = \mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_{t-1} + \mathbf{B}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{u}_t \]</span> <span class="math display">\[ \mathbf{P}^{-(i)}_t = \mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_{t-1}  (\mathbf{F}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{w}_t(\boldsymbol{\theta}^{(i)}_t)\]</span></p>
+<p><span class="math display">\[ \mathbf{x}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{u}_t \]</span> <span class="math display">\[ \mathbf{\Sigma}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{\Sigma}^{-(i)}_{t-1}  (\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\})^T + \mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
 <h2 id="measurements-model">Measurements model</h2>
-<p>The measurement model defines how to compute <span class="math inline">\(p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})\)</span></p>
+<p>The measurement model defines how to compute <span class="math inline">\(p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-_K1})\)</span></p>
 <ul>
-<li>Vicon:
+<li>Accelerometer:
 <ol style="list-style-type: decimal">
-<li><span class="math inline">\(\mathbf{p}(t) = \mathbf{pV}(t) + \mathbf{pV}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{pV}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{pV}_t })\)</span></li>
-<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{qV}(t) + \mathbf{qV}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{qV}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{qV}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{a}(t) = \mathbf{R}_{b2f}\{\mathbf{q}(t)\}(\mathbf{a_A}(t) + \mathbf{a_A}^\epsilon_t)\)</span> where <span class="math inline">\(\mathbf{a_A}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{a_A}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{g}^f(t) = \mathbf{R}_{b2f}\{\mathbf{q}(t)\}(\mathbf{a_A}(t) + \mathbf{a_A}^\epsilon_t) - \mathbf{a}(t)\)</span></li>
 </ol></li>
 <li>Gyroscope:
 <ol start="3" style="list-style-type: decimal">
-<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{q}(t-1) + (\boldsymbol{\omega G}(t) + \boldsymbol{\omega G}^\epsilon_t)*dt\)</span> where <span class="math inline">\(\boldsymbol{\omega G^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\boldsymbol{\omega G}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{q}(t-1) + \Delta t(\mathbf{\boldsymbol{\omega}_G}(t) + \mathbf{\boldsymbol{\omega}_G}^\epsilon_t)\)</span> where <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G^\epsilon}_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t })\)</span></li>
 </ol></li>
-<li>Accelerometer:
+<li>Vicon:
 <ol start="4" style="list-style-type: decimal">
-<li><span class="math inline">\(\mathbf{a}(t) = B2F(\mathbf{q}(t), aA(t) + \mathbf{aA}^\epsilon_t)\)</span> where <span class="math inline">\(\mathbf{aA}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{aA}_t })\)</span></li>
-<li><span class="math inline">\(\mathbf{g}^f(t) = B2F(\mathbf{q}(t), \mathbf{aA}(t) + \mathbf{aA}^\epsilon_t) - \mathbf{a}(t)\)</span> where <span class="math inline">\(\mathbf{aA}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{aA}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{p}(t) = \mathbf{p_V}(t) + \mathbf{p_V}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{p_V}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{q}(t) = \mathbf{q_V}(t) + \mathbf{q_V}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{q_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{q_V}_t })\)</span></li>
 </ol></li>
 </ul>
-<p>(1, 2, 4) define the observation matrix <span class="math inline">\(\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> and the observation noise <span class="math inline">\(\mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t)\)</span> for the Kalman filter.</p>
-<p><strong>TODO</strong>: write the 3 matrices explicitely</p>
-<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(1, 2, 4)}_t; \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_t, \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_t  (\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t))\]</span></p>
-<p><span class="math inline">\(\mathbf{z}^{(1, 2, 4)}\)</span> means component 1, 2 and 4 of <span class="math inline">\(\mathbf{z}\)</span>.</p>
+<p>(1, 4) define the observation matrix <span class="math inline">\(\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the observation noise <span class="math inline">\(\mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> and its covariance matrix <span class="math inline">\(\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter.</p>
+<p><span class="math display">\[(\mathbf{a_A}_t, \mathbf{p_V}_t)^T  = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} (\mathbf{a}_t, \mathbf{p}_t)^T + \mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
+<p><span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{6 \times 6} = 
+\left( \begin{array}{ccc}
+\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} &amp; \mathbf{0}_{3 \times 3} \\
+\mathbf{0}_{3 \times 3} &amp; \mathbf{I}_{3 \times 3} 
+\end{array} \right)\]</span></p>
+<p><span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{6 \times 6} = 
+\left( \begin{array}{ccc}
+\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } &amp; \mathbf{0}_{3 \times 3} \\
+\mathbf{0}_{3 \times 3} &amp; \mathbf{R}_{\mathbf{p_V}_t }
+\end{array} \right)\]</span></p>
+<h3 id="kalman-update">Kalman update</h3>
+<p><span class="math display">\[\mathbf{S} = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{\Sigma}^{-(i)}_t  (\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\})^T + \mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\})\]</span> <span class="math display">\[\mathbf{\hat{z}} = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}  \mathbf{x}^{-(i)}_t\]</span> <span class="math display">\[\mathbf{K} = \mathbf{\Sigma}^{-(i)}_t \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}^T \mathbf{S}^{-1}\]</span> <span class="math display">\[\mathbf{\Sigma}^{(i)}_t = \mathbf{\Sigma}^{(i)}_t + \mathbf{K} \mathbf{S} \mathbf{K}^T\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}((\mathbf{a_A}_t, \mathbf{p_V}_t)^T - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}((\mathbf{a_A}_t, \mathbf{p_V}_t)^T; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></p>
 <h3 id="asynchronous-measurements">Asynchronous measurements</h3>
-<p>Our measurements have different sampling rate so instead of doing full kalman update, we only apply a partial kalman update corresponding to the current type of measurement <span class="math inline">\(\mathbf{z}_t\)</span></p>
+<p>Our measurements from the Vicon and the accelerometer have different sampling rate so instead of doing full kalman update, we only apply a partial kalman update corresponding to the current type of measurement <span class="math inline">\(\mathbf{z}_t\)</span></p>
+<p>For instance, we would apply the kalman update from the previous section but with:</p>
+<ul>
+<li><p>for <span class="math inline">\(\mathbf{a_A}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></p></li>
+<li><p>for <span class="math inline">\(\mathbf{p_V}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{p_V}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></p></li>
+</ul>
 <h2 id="other-sources-or-reweighting">Other sources or reweighting</h2>
-<p>(3 and 5) defines two other weight updates.</p>
-<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(3)}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/dt, \mathbf{R}_{\boldsymbol{\omega G}_t})\]</span></p>
-<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(5)}_t; F2B(\mathbf{q}^{(i)}_t, \mathbf{g}) + \mathbf{a}^{(i)}_t, \mathbf{R}_{\mathbf{aA}_t} + \mathbf{Pa}^{-(i)}_t)\]</span></p>
+<p>(2, 3 and 5) defines three other weight updates.</p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_t\}\mathbf{g} + \mathbf{a}^{(i)}_t,~ \mathbf{R}_{\mathbf{a_A}_t} + \mathbf{Pa}^{-(i)}_t)\]</span></p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{\boldsymbol{\omega}_G}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/\Delta t,~ \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t})\]</span></p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t })\]</span></p>
 <p><strong>TODO</strong>: Check that matrix of covariance is correct for 5. Found covariance as covariance of sum of normal but seems too simple.</p>
-<p>where <span class="math inline">\(\mathbf{Pa}^{-(i)}_t\)</span> is the variance of <span class="math inline">\(\mathbf{a}\)</span> in <span class="math inline">\(\mathbf{P}^{-(i)}_t\)</span> and <span class="math inline">\(\mathbf{g}\)</span> is the gravity vector.</p>
-<h2 id="kalman-update">Kalman update</h2>
-<p><strong>TODO</strong>: plain kalman update matrix operations.</p>
+<p>where <span class="math inline">\(\mathbf{Pa}^{-(i)}_t\)</span> is the variance of <span class="math inline">\(\mathbf{a}\)</span> in <span class="math inline">\(\mathbf{\Sigma}^{-(i)}_t\)</span> and <span class="math inline">\(\mathbf{g}\)</span> is the gravity vector.</p>
 <h2 id="algorithm-summary">Algorithm summary</h2>
 <ol style="list-style-type: decimal">
-<li>Initiate <span class="math inline">\(N\)</span> particles with <span class="math inline">\(p_0\)</span>, <span class="math inline">\(q_0 ~ sim p(q_0)\)</span>, <span class="math inline">\(P_0\)</span> and <span class="math inline">\(w = 1/N\)</span></li>
+<li>Initiate <span class="math inline">\(N\)</span> particles with <span class="math inline">\(\mathbf{p}_0\)</span>, <span class="math inline">\(\mathbf{q}_0 ~ \sim p(\mathbf{q}_0)\)</span>, <span class="math inline">\(\mathbf{\Sigma}_0\)</span> and <span class="math inline">\(w = 1/N\)</span></li>
 <li>While new sensor measurements <span class="math inline">\((\mathbf{z}_t, \mathbf{u}_t)\)</span></li>
 </ol>
 <ul>
@@ -180,11 +217,11 @@
 <li>sample new latent variable <span class="math inline">\(\boldsymbol{\theta_t}\)</span> from <span class="math inline">\(\mathbf{u}_t\)</span></li>
 <li>Depending on the type of measurement:
 <ul>
-<li><strong>Gyroscope</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(3)}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/dt, \mathbf{R}_{\boldsymbol{\omega G}_t})\]</span></li>
-<li><strong>Vicon</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(1, 2, 4)}_t; \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_t, \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_t  (\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t))\]</span> and update particle state with a partial/full kalman prediction and update</li>
-<li><strong>Accelerometer</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(1, 2, 4)}_t; \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{m}^{(i)}_t, \mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t) \mathbf{P}^{-(i)}_t  (\mathbf{H}_t(\boldsymbol{\theta}^{(i)}_t))^T + \mathbf{v}_t(\boldsymbol{\theta}^{(i)}_t))\]</span> from the acceleration information and update particle state with a partial/full kalman prediction and update, and then a new <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{z}^{(5)}_t; F2B(\mathbf{q}^{(i)}_t, \mathbf{g}) + \mathbf{a}^{(i)}_t, \mathbf{R}_{\mathbf{aA}_t} + \mathbf{Pa}^{-(i)}_t) p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})\]</span> from the orientation information</li>
+<li><strong>Accelerometer</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^- = \mathcal{N}(\mathbf{a_A}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_t\}\mathbf{g} + \mathbf{a}^{(i)}_t, \mathbf{R}_{\mathbf{a_A}_t} + \mathbf{Pa}^{-(i)}_t) p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^-\]</span></li>
+<li><strong>Gyroscope</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{\boldsymbol{\omega}_G}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/\Delta t,~ \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t})\]</span></li>
+<li><strong>Vicon</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^- = \mathcal{N}(\mathbf{p_V}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t }) p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^-\]</span></li>
 </ul></li>
-<li>Update <span class="math inline">\(w^{(i)}_t\)</span> as <span class="math inline">\(w^{(i)}_t = p(\mathbf{y}_t | \boldsymbol{\theta}{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\)</span><br />
+<li>Update <span class="math inline">\(w^{(i)}_t\)</span>: <span class="math inline">\(w^{(i)}_t = p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\)</span><br />
 </li>
 </ol></li>
 <li>Compute <span class="math inline">\(\mathbf{p}_t\)</span> and <span class="math inline">\(\mathbf{q}_t\)</span> as the expectation from the distribution approximated by the N particles.</li>
