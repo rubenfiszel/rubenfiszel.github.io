@@ -7,6 +7,43 @@
   <meta name="author" content="Ruben Fiszel" />
   <title>POSE estimation through Rao-Blackwellized Particle filter.</title>
   <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
   <link rel="stylesheet" href="markdown3.css" type="text/css" />
   <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML-full" type="text/javascript"></script>
 </head>
@@ -24,6 +61,7 @@
 <li><span class="math inline">\(x_t\)</span> is the random variable of x at time t</li>
 <li><span class="math inline">\(x_{t1:t2}\)</span> is the product of the random variable of x between t1 included and t2 included</li>
 <li><span class="math inline">\(x^{(i)}\)</span> designates the random variable x of the arbitrary particle i</li>
+<li><span class="math inline">\(\hat{x}\)</span> designates an estimated variable</li>
 </ul>
 <h2 id="pose">POSE</h2>
 <p>POSE is the task of determining the position and orientation of an object through time. It is a subroutine of SLAM (Software Localization And Mapping). We can formelize the problem as:</p>
@@ -54,7 +92,26 @@
 </ul>
 <p>This work adapts itself easily to other sensors but we will focus here only on those 3.</p>
 <h2 id="quaternions">Quaternions</h2>
-<p>Quaternions are extensions of complex numbers but with 3 imaginary parts. They can be used to represent orientation, also referred to as attitude. Quaternions algebra make rotation composition simple and quaternions avoid the issue of gimbal lock. In all filters presented, they will be used to represent the attitude.</p>
+<p>Quaternions are extensions of complex numbers but with 3 imaginary parts. Unit quaternions can be used to represent orientation, also referred to as attitude. Quaternions algebra make rotation composition simple and quaternions avoid the issue of gimbal lock. In all filters presented, they will be used to represent the attitude.</p>
+<p>Quaternion rotations composition is: <span class="math display">\[q_1 q_2\]</span> which results in <span class="math inline">\(q_2\)</span> being rotated by <span class="math inline">\(q_1\)</span>. From this, we can deduce that angular velocity integrated over time is simply <span class="math inline">\(q^t\)</span> if <span class="math inline">\(q\)</span> is the local quaternion rotation by unit of time.</p>
+<h2 id="helper-functions-and-matrices">Helper functions and matrices</h2>
+<p>We introduce some helper matrices.</p>
+<ul>
+<li><span class="math inline">\(\mathbf{R}_{b2f}\{\mathbf{q}\}\)</span> is the body to fixed vector rotation matrix. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(q\)</span>.</li>
+<li><span class="math inline">\(\mathbf{R}_{f2b}\{\mathbf{q}\}\)</span> is its inverse matrix (from fixed to body).</li>
+<li><span class="math inline">\(\mathbf{T}_{2a} = (0, 0, 1/m)^T\)</span> is the scaling from thrust to acceleration (by dividing by the weight of the drone: <span class="math inline">\(\mathbf{F} = m\mathbf{a} \Rightarrow \mathbf{a} = \mathbf{F}/m)\)</span> and then multiplying by a unit vector <span class="math inline">\((0, 0, 1)\)</span></li>
+<li><span class="math display">\[R2Q(\boldsymbol{\theta}) = (\cos(\| \boldsymbol{\theta} \| / 2), \frac{\boldsymbol{\theta}_x}{\| \boldsymbol{\theta} \|} \sin(\| \boldsymbol{\theta} \| / 2), \frac{\boldsymbol{\theta}_y}{\| \boldsymbol{\theta} \|} \sin(\| \boldsymbol{\theta} \| / 2), \frac{\boldsymbol{\theta}_z}{\| \boldsymbol{\theta} \|} \sin(\| \boldsymbol{\theta} \| / 2) )\]</span> is a function that convert from a local angle rotation to a local quaternion rotation. The definition of this function come from converting <span class="math inline">\(\boldsymbol{\theta}\)</span> to a body-axis angle, and then to a quaternion.</li>
+<li><span class="math inline">\(\Delta t\)</span> is the lapse of time between t and the next tick (t+1)</li>
+</ul>
+<h2 id="model-dynamics">Model dynamics</h2>
+<ul>
+<li><span class="math inline">\(\mathbf{a}(t+1) = \mathbf{R}_{b2f}\{\mathbf{q}(t+1)\}\mathbf{T}_{2a} {t_C}(t+1) + \mathbf{a}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{a}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{a}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{v}(t+1) = \mathbf{v}(t) + \Delta t \mathbf{a}(t) + \mathbf{v}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{v}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{v}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{p}(t+1) = \mathbf{p}(t) + \Delta t \mathbf{v}(t) + \mathbf{p}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{p}_t })\)</span></li>
+<li><span class="math inline">\(\boldsymbol{\omega}(t+1) = \mathbf{\boldsymbol{\omega}_C}(t+1)\)</span></li>
+<li><span class="math inline">\(\mathbf{q}(t+1) = \mathbf{q}(t) + R2Q(\Delta t \boldsymbol{ \omega(t) })\)</span></li>
+</ul>
+<p>Note that <span class="math inline">\(\mathbf{q}(t+1)\)</span> is known because the model is conditionned under <span class="math inline">\(\boldsymbol{\theta}^{(i)}_{t+1}\)</span>.</p>
 <h2 id="filtering-and-smoothing">Filtering and smoothing</h2>
 <p><strong>Smoothing</strong> is the statistical task of finding the expectation of the state variable from multiple observation variable ahead.</p>
 <p><span class="math display">\[\mathbb{E}[g(\mathbf{x}_{0:t}) | \mathbf{y}_{1:t+k}]\]</span></p>
@@ -62,16 +119,79 @@
 <p><span class="math display">\[\mathbb{E}[(\mathbf{p}_{0:t}, \mathbf{q}_{0:t}) | (\mathbf{z}_{1:t+k}, \mathbf{u}_{1:t+k})]\]</span></p>
 <p><span class="math inline">\(k\)</span> is a contant and the first observation is <span class="math inline">\(y_1\)</span></p>
 <p><strong>Filtering</strong> is a kind of smoothing where you only have at disposal the current observation variable (<span class="math inline">\(k=0\)</span>)</p>
+<h2 id="observations">Observations</h2>
+<p><span class="math display">\[\mathbf{y}_t = (\mathbf{z}_t, \mathbf{u}_t)^T = ((\mathbf{a_A}_t, \mathbf{\boldsymbol{\omega}_G}_t, \mathbf{p_V}_t, \mathbf{q_V}_t), ({t_C}_t, \mathbf{\boldsymbol{\omega}_C}_t))^T\]</span></p>
+<h3 id="measurements">Measurements</h3>
+<ul>
+<li><span class="math inline">\(\mathbf{a_A}\)</span> acceleration from the accelerometer in the body frame</li>
+<li><span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}\)</span> angular velocity from the gyroscope in the body frame</li>
+<li><span class="math inline">\(\mathbf{p_V}\)</span> position from the vicon</li>
+<li><span class="math inline">\(\mathbf{q_V}\)</span> attitude from the vicon</li>
+</ul>
+<h3 id="control-inputs">Control Inputs</h3>
+<ul>
+<li><span class="math inline">\(t_C\)</span> thrust (as a scalar) in the direction of the attitude from the control input.</li>
+<li><span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}\)</span> angular velocity in the body frame from the control input</li>
+</ul>
+<p>Observations from the control input are not strictly speaking measurements but input of the state-transition model</p>
 <h1 id="complementary-filter">Complementary Filter</h1>
 <h1 id="kalman-filter">Kalman Filter</h1>
-<p>Kalman filters are optimal linear filters.</p>
-<p><strong>TODO</strong></p>
 <h2 id="linearity">Linearity</h2>
+<p>Kalman filters are optimal linear filters.</p>
 <p>Kalman filters are non optimal for our problem because our state has some non-linear components (attitude).</p>
-<p>Indeed, rotations belong to <span class="math inline">\(SO(3)\)</span>. It can be shown intuitively that they do not belong to a vector space because the sum of two unit quaternions is not a unit quaternion (not closed under addition). <strong>TODO</strong></p>
+<p>Indeed, rotations belong to <span class="math inline">\(SO(3)\)</span>. It can be shown intuitively that they do not belong to a vector space because the sum of two unit quaternions is not a unit quaternion (not closed under addition).</p>
+<p>However, we can use extension of the Kalman Filter to deal with non-linearity like Extended Kalman Filters</p>
 <h2 id="extended-kalman-filters">Extended Kalman Filters</h2>
 <p>EKF are linearized Kalman filters of the first order.</p>
-<p><strong>TODO</strong></p>
+<h2 id="state">State</h2>
+<p>For the EKF, we are gonna use the following state:</p>
+<p><span class="math display">\[\mathbf{x}_t = (\mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t, \boldsymbol{\omega}_t, \mathbf{q}_t)^T\]</span></p>
+<ul>
+<li><span class="math inline">\(\mathbf{a}\)</span> acceleration</li>
+<li><span class="math inline">\(\mathbf{v}\)</span> velocity</li>
+<li><span class="math inline">\(\mathbf{p}\)</span> position</li>
+<li><span class="math inline">\(\boldsymbol{\omega}\)</span> angular velocity</li>
+<li><span class="math inline">\(\mathbf{q}\)</span> attitude</li>
+</ul>
+<p>Initial state <span class="math inline">\(\mathbf{x}_0\)</span> at <span class="math inline">\((\mathbf{0}, \mathbf{0}, \mathbf{0}, \mathbf{0}, (1, 0, 0, 0))\)</span></p>
+<h2 id="kalman-prediction">Kalman prediction</h2>
+<p>The model dynamic defines the following model, state-transition function <span class="math inline">\(f(\mathbf{x}, \mathbf{u})\)</span> and process noise <span class="math inline">\(\mathbf{w}\)</span> with covariance matrix <span class="math inline">\(\mathbf{Q}\)</span></p>
+<p><span class="math display">\[\mathbf{x}_t = f(\mathbf{x}_{t-1}, \mathbf{u}_t) + \mathbf{w}_t\]</span></p>
+<p><span class="math display">\[f((\mathbf{a}, \mathbf{v}, \mathbf{p}, \boldsymbol{\omega}, \mathbf{q}), (t_C, \mathbf{\boldsymbol{\omega}_C})) = \left( \begin{array}{c}
+\mathbf{R}_{b2f}\{\mathbf{q}\}\mathbf{T}_{2a} {t_C} \\
+\mathbf{v} + \Delta t \mathbf{a} \\
+\mathbf{p} + \Delta t \mathbf{v} \\
+\mathbf{\boldsymbol{\omega}_C} \\
+\mathbf{q}*R2Q({\Delta t} \boldsymbol{\omega})
+\end{array} \right)\]</span></p>
+<p>Now, we need to derive the jacobian of <span class="math inline">\(f\)</span>. It is quite trivial except for the partial derivatives of <span class="math inline">\(q\)</span>. We will use sagemath to retrieve the 28 interesting different partial derivatives of <span class="math inline">\(q\)</span></p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">Q.<span class="op">&lt;</span>i,j,k<span class="op">&gt;</span> <span class="op">=</span> QuaternionAlgebra(SR, <span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>)
+
+var(<span class="st">&#39;q0, q1, q2, q3&#39;</span>)
+var(<span class="st">&#39;dt&#39;</span>)
+var(<span class="st">&#39;wx, wy, wz&#39;</span>)
+
+q <span class="op">=</span> q0 <span class="op">+</span> q1<span class="op">*</span>i <span class="op">+</span> q2<span class="op">*</span>j <span class="op">+</span> q3<span class="op">*</span>k
+
+w <span class="op">=</span> vector([wx, wy, wz])<span class="op">*</span>dt
+w_norm <span class="op">=</span> sqrt(w[<span class="dv">0</span>]<span class="op">^</span><span class="dv">2</span> <span class="op">+</span> w[<span class="dv">1</span>]<span class="op">^</span><span class="dv">2</span> <span class="op">+</span> w[<span class="dv">2</span>]<span class="op">^</span><span class="dv">2</span>)
+ang <span class="op">=</span> w_norm<span class="op">/</span><span class="dv">2</span>
+w_normalized <span class="op">=</span> w<span class="op">/</span>w_norm
+sin2 <span class="op">=</span> sin(ang)
+qd <span class="op">=</span> cos(ang) <span class="op">+</span> w_normalized[<span class="dv">0</span>]<span class="op">*</span>sin2<span class="op">*</span>i <span class="op">+</span> w_normalized[<span class="dv">1</span>]<span class="op">*</span>sin2<span class="op">*</span>j <span class="op">+</span> w_normalized[<span class="dv">2</span>]<span class="op">*</span>sin2<span class="op">*</span>k
+
+nq <span class="op">=</span> q<span class="op">*</span>qd
+
+v <span class="op">=</span> vector(nq.coefficient_tuple())
+
+<span class="cf">for</span> sym <span class="kw">in</span> [wx, wy, wz, q0, q1, q2, q3]:
+    d <span class="op">=</span> diff(v, sym)
+    exps <span class="op">=</span> <span class="bu">map</span>(<span class="kw">lambda</span> x: x.canonicalize_radical().full_simplify(), d)
+    <span class="cf">for</span> i, e <span class="kw">in</span> <span class="bu">enumerate</span>(exps):
+        <span class="bu">print</span>(sym, i, e) </code></pre></div>
+<p><span class="math display">\[{\mathbf{F}_t}_{16 \times 16} = \left . \frac{\partial f}{\partial \mathbf{x} } \right \vert _{\hat{\mathbf{x}}_{t-1},\mathbf{u}_{t-1}}\]</span></p>
+<p><span class="math display">\[\mathbf{x}^{-(i)}_t = f(\mathbf{x}^{(i)}_{t-1}, \mathbf{u}_t)\]</span> <span class="math display">\[\mathbf{\Sigma}^{-(i)}_t = \mathbf{F}_{t-1} \mathbf{\Sigma}^{-(i)}_{t-1}  \mathbf{F}_{t-1}^T + \mathbf{Q}_t\]</span></p>
+<p><strong>TODO</strong> the rest.</p>
 <h2 id="unscented-kalman-filters">Unscented Kalman Filters</h2>
 <p><strong>TODO</strong></p>
 <h1 id="particle-filter">Particle Filter</h1>
@@ -96,49 +216,21 @@
 <p>Hence,</p>
 <p><span class="math display">\[w^{(i)}_t \propto p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\]</span></p>
 <p>We then sum all <span class="math inline">\(w^{(i)}_t\)</span> to find the normalization constant and retrieve the actual <span class="math inline">\(w^{(i)}_t\)</span></p>
-<h2 id="state">State</h2>
+<h2 id="state-1">State</h2>
 <p><span class="math display">\[\mathbf{x}_t = (\mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t)^T\]</span></p>
 <ul>
 <li><span class="math inline">\(\mathbf{a}\)</span> acceleration</li>
 <li><span class="math inline">\(\mathbf{v}\)</span> velocity</li>
 <li><span class="math inline">\(\mathbf{p}\)</span> position</li>
 </ul>
-<p>Initial position <span class="math inline">\(\mathbf{p_0}\)</span> at (0, 0, 0)</p>
-<h2 id="observations">Observations</h2>
-<p><span class="math display">\[\mathbf{y}_t = (\mathbf{z}_t, \mathbf{u}_t)^T = ((\mathbf{a_A}_t, \mathbf{\boldsymbol{\omega}_G}_t, \mathbf{p_V}_t, \mathbf{q_V}_t), ({t_C}_t, \mathbf{\boldsymbol{\omega}_C}_t))^T\]</span></p>
-<h3 id="measurements">Measurements</h3>
-<ul>
-<li><span class="math inline">\(\mathbf{a_A}\)</span> acceleration from the accelerometer in the body frame</li>
-<li><span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}\)</span> angular velocity from the gyroscope in the body frame</li>
-<li><span class="math inline">\(\mathbf{p_V}\)</span> position from the vicon</li>
-<li><span class="math inline">\(\mathbf{q_V}\)</span> attitude from the vicon</li>
-</ul>
-<h3 id="control-inputs">Control Inputs</h3>
-<ul>
-<li><span class="math inline">\({t_C}\)</span> thrust (as a scalar) in the direction of the attitude from the control input.</li>
-<li><span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}\)</span> angular velocity in the body frame from the control input</li>
-</ul>
-<p>Observations from the control input are not strictly speaking measurements but input of the state-transition model</p>
-<h2 id="helper-matrices">Helper Matrices</h2>
-<p>We introduce some helper matrices.</p>
-<ul>
-<li><span class="math inline">\(\mathbf{R}_{b2f}\{\mathbf{q}\}\)</span> is the body to fixed vector rotation matrix. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(q\)</span>.</li>
-<li><span class="math inline">\(\mathbf{R}_{f2b}\{\mathbf{q}\}\)</span> is its inverse matrix (from fixed to body).</li>
-<li><span class="math inline">\(\mathbf{T}_{2a} = (0, 0, 1/m)^T\)</span> is the scaling from thrust to acceleration (by dividing by the weight of the drone: <span class="math inline">\(\mathbf{F} = m\mathbf{a} \Rightarrow \mathbf{a} = \mathbf{F}/m)\)</span> and then multiplying by a unit vector <span class="math inline">\((0, 0, 1)\)</span></li>
-</ul>
-<p><span class="math inline">\(\Delta t\)</span> is the lapse of time between t and the next tick (t+1)</p>
+<p>Initial state <span class="math inline">\(\mathbf{x}_0 = (\mathbf{0}, \mathbf{0}, \mathbf{0})\)</span></p>
+<p>Initial covariance matrix <span class="math inline">\(\mathbf{\Sigma}_{9 \times 9} = \epsilon \mathbf{I}_{9 \times 9}\)</span></p>
 <h2 id="latent-variable">Latent variable</h2>
-<p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q((\mathbf{\boldsymbol{\omega}_C}_t+\mathbf{\boldsymbol{\omega}_C}^\epsilon_t)*\Delta t)\]</span></p>
-<p>Where R2Q is a function that convert from radians of the angular rotation, to a quaternion and <span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_C}_t })\)</span></p>
+<p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q({\Delta t} (\mathbf{\boldsymbol{\omega}_C}_t+\mathbf{\boldsymbol{\omega}_C}^\epsilon_t))\]</span></p>
+<p><span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_C}_t })\)</span></p>
 <p>Initial attitude <span class="math inline">\(\mathbf{q_0}\)</span> is sampled such that the drone pitch and roll are none (parralel to the ground) but the yaw is unknown and uniformly distributed.</p>
-<h2 id="model-dynamics">Model dynamics</h2>
-<ul>
-<li><span class="math inline">\(\mathbf{a}(t+1) = \mathbf{R}_{b2f}\{\mathbf{q}(t+1)\}\mathbf{T}_{2a} {t_C}(t+1) + \mathbf{a}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{a}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{a}_t })\)</span></li>
-<li><span class="math inline">\(\mathbf{v}(t+1) = \mathbf{v}(t) + \Delta t \mathbf{a}(t) + \mathbf{v}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{v}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{v}_t })\)</span></li>
-<li><span class="math inline">\(\mathbf{p}(t+1) = \mathbf{p}(t) + \Delta t \mathbf{v}(t) + \mathbf{p}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{p}_t })\)</span></li>
-</ul>
-<p>Note that <span class="math inline">\(\mathbf{q}(t+1)\)</span> is known because the model is conditionned under <span class="math inline">\(\boldsymbol{\theta}^{(i)}_{t+1}\)</span>.</p>
-<p>The model dynamic define the state-transition matrix <span class="math inline">\(\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the control-input matrix <span class="math inline">\(\mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the process noise <span class="math inline">\(\mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter and its covariance <span class="math inline">\(\mathbf{Q}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span></p>
+<h2 id="kalman-prediction-1">Kalman prediction</h2>
+<p>The model dynamics define the following model, state-transition matrix <span class="math inline">\(\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the control-input matrix <span class="math inline">\(\mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the process noise <span class="math inline">\(\mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter and its covariance <span class="math inline">\(\mathbf{Q}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span></p>
 <p><span class="math display">\[\mathbf{x}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}_{t-1} + \mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{u}_t + \mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
 <p><span class="math display">\[\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\}_{9 \times 9} = 
 \left( \begin{array}{ccc}
@@ -158,8 +250,7 @@
 \mathbf{0}_{3 \times 3} &amp; \mathbf{Q}_{\mathbf{v}_t } &amp; \mathbf{0}_{3 \times 3} \\
 \mathbf{0}_{3 \times 3} &amp; \mathbf{0}_{3 \times 3} &amp; \mathbf{Q}_{\mathbf{p}_t }
 \end{array} \right)\]</span></p>
-<h2 id="kalman-prediction">Kalman prediction</h2>
-<p><span class="math display">\[ \mathbf{x}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{u}_t \]</span> <span class="math display">\[ \mathbf{\Sigma}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{\Sigma}^{-(i)}_{t-1}  (\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\})^T + \mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
+<p><span class="math display">\[\hat{\mathbf{x}}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{u}_t \]</span> <span class="math display">\[ \mathbf{\Sigma}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{\Sigma}^{-(i)}_{t-1}  (\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\})^T + \mathbf{Q}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
 <h2 id="measurements-model">Measurements model</h2>
 <p>The measurement model defines how to compute <span class="math inline">\(p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-_K1})\)</span></p>
 <ul>
@@ -190,13 +281,13 @@
 \mathbf{0}_{3 \times 3} &amp; \mathbf{R}_{\mathbf{p_V}_t }
 \end{array} \right)\]</span></p>
 <h3 id="kalman-update">Kalman update</h3>
-<p><span class="math display">\[\mathbf{S} = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{\Sigma}^{-(i)}_t  (\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\})^T + \mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\})\]</span> <span class="math display">\[\mathbf{\hat{z}} = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}  \mathbf{x}^{-(i)}_t\]</span> <span class="math display">\[\mathbf{K} = \mathbf{\Sigma}^{-(i)}_t \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}^T \mathbf{S}^{-1}\]</span> <span class="math display">\[\mathbf{\Sigma}^{(i)}_t = \mathbf{\Sigma}^{(i)}_t + \mathbf{K} \mathbf{S} \mathbf{K}^T\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}((\mathbf{a_A}_t, \mathbf{p_V}_t)^T - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}((\mathbf{a_A}_t, \mathbf{p_V}_t)^T; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></p>
+<p><span class="math display">\[\mathbf{S} = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{\Sigma}^{-(i)}_t  (\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\})^T + \mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\})\]</span> <span class="math display">\[\hat{\mathbf{z}} = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}  \hat{\mathbf{x}}^{-(i)}_t\]</span> <span class="math display">\[\mathbf{K} = \mathbf{\Sigma}^{-(i)}_t \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}^T \mathbf{S}^{-1}\]</span> <span class="math display">\[\mathbf{\Sigma}^{(i)}_t = \mathbf{\Sigma}^{(i)}_t + \mathbf{K} \mathbf{S} \mathbf{K}^T\]</span> <span class="math display">\[\hat{\mathbf{x}}^{(i)}_t = \hat{\mathbf{x}}^{-(i)}_t  \mathbf{x}^{(i)}_{t-1} + \mathbf{K}((\mathbf{a_A}_t, \mathbf{p_V}_t)^T - \hat{\mathbf{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}((\mathbf{a_A}_t, \mathbf{p_V}_t)^T; \hat{\mathbf{z}}_t, \mathbf{S})\]</span></p>
 <h3 id="asynchronous-measurements">Asynchronous measurements</h3>
 <p>Our measurements from the Vicon and the accelerometer have different sampling rate so instead of doing full kalman update, we only apply a partial kalman update corresponding to the current type of measurement <span class="math inline">\(\mathbf{z}_t\)</span></p>
 <p>For instance, we would apply the kalman update from the previous section but with:</p>
 <ul>
-<li><p>for <span class="math inline">\(\mathbf{a_A}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></p></li>
-<li><p>for <span class="math inline">\(\mathbf{p_V}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{p_V}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></p></li>
+<li><p>for <span class="math inline">\(\mathbf{a_A}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \hat{\mathbf{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \hat{\mathbf{z}}_t, \mathbf{S})\]</span></p></li>
+<li><p>for <span class="math inline">\(\mathbf{p_V}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \hat{\mathbf{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{p_V}_t; \hat{\mathbf{z}}_t, \mathbf{S})\]</span></p></li>
 </ul>
 <h2 id="other-sources-or-reweighting">Other sources or reweighting</h2>
 <p>(2 and 4) defines two other weight updates.</p>
@@ -204,7 +295,7 @@
 <p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t })\]</span></p>
 <h2 id="algorithm-summary">Algorithm summary</h2>
 <ol style="list-style-type: decimal">
-<li>Initiate <span class="math inline">\(N\)</span> particles with <span class="math inline">\(\mathbf{p}_0\)</span>, <span class="math inline">\(\mathbf{q}_0 ~ \sim p(\mathbf{q}_0)\)</span>, <span class="math inline">\(\mathbf{\Sigma}_0\)</span> and <span class="math inline">\(w = 1/N\)</span></li>
+<li>Initiate <span class="math inline">\(N\)</span> particles with <span class="math inline">\(\mathbf{x}_0\)</span>, <span class="math inline">\(\mathbf{q}_0 ~ \sim p(\mathbf{q}_0)\)</span>, <span class="math inline">\(\mathbf{\Sigma}_0\)</span> and <span class="math inline">\(w = 1/N\)</span></li>
 <li>While new sensor measurements <span class="math inline">\((\mathbf{z}_t, \mathbf{u}_t)\)</span></li>
 </ol>
 <ul>
@@ -213,9 +304,9 @@
 <li>sample new latent variable <span class="math inline">\(\boldsymbol{\theta_t}\)</span> from <span class="math inline">\(\mathbf{u}_t\)</span></li>
 <li>Depending on the type of measurement:
 <ul>
-<li><strong>Accelerometer</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} ~~~~ \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span></li>
+<li><strong>Accelerometer</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} ~~~~ \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \hat{\mathbf{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \hat{\mathbf{z}}_t, \mathbf{S})\]</span></li>
 <li><strong>Gyroscope</strong>: <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{\boldsymbol{\omega}_G}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/\Delta t,~ \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t})\]</span></li>
-<li><strong>Vicon</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} ~~~~ \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \mathbf{\hat{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^- = \mathcal{N}(\mathbf{p_V}_t; \mathbf{\hat{z}}_t, \mathbf{S})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t }) p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^-\]</span></li>
+<li><strong>Vicon</strong>: Partial kalman update with: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} ~~~~ \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \hat{\mathbf{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^- = \mathcal{N}(\mathbf{p_V}_t; \hat{\mathbf{z}}_t, \mathbf{S})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t }) p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})^-\]</span></li>
 </ul></li>
 <li>Update <span class="math inline">\(w^{(i)}_t\)</span>: <span class="math inline">\(w^{(i)}_t = p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\)</span><br />
 </li>
