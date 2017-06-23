@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Ruben Fiszel" />
-  <title>Sensor fusion for drones: Rao-Blackwellized Particle filter for POSE estimation</title>
+  <title>Master thesis Pt I: Accelerated optimal sensor fusion algorithm for POSE estimation of drones: Asynchronous Rao-Blackwellized Particle filter</title>
   <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
 div.sourceCode { overflow-x: auto; }
@@ -49,13 +49,53 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </head>
 <body>
 <div id="header">
-<h1 class="title">Sensor fusion for drones: Rao-Blackwellized Particle filter for POSE estimation</h1>
+<h1 class="title">Master thesis Pt I: Accelerated optimal sensor fusion algorithm for POSE estimation of drones: Asynchronous Rao-Blackwellized Particle filter</h1>
 <h2 class="author">Ruben Fiszel</h2>
+<h3 class="date">June 2017</h3>
 </div>
+<p>This post is the part I out of III of my master thesis at the <a href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford. The central themes of this thesis are sensor fusion and spatial, an hardware accelerator language (Verilog is also one). This part is about an application of hardware acceleration, sensor fusion for drones. Part II will be about <a href="https://github.com/rubenfiszel/scala-flow/">scala-flow</a>, a library made during my thesis as a development tool for Spatial inspired by Simulink. This library helped me greatly in develop the filter but is intended to be very general purpose. Part III will be the development of an interpreter for spatial, and the spatial implementation of the filters presented in Part I. If you are only interested in the filter, you can skip the introduction.</p>
 <h1 id="introduction">Introduction</h1>
-<p>We will introduce here several filter for POSE estimation for highly dynamic objects and in particular drones. The order is from the most conceptually simple, to the most complex. The Rao-Blackwellized Particle filter can be viewed as a superset of many other filters, where those filters are just instances of a particle filter with only one particle.</p>
-<h2 id="drone">Drone</h2>
-<p><strong>TODO</strong>: Talk about drone, high-dynamic objects</p>
+<h2 id="moores-law-end">Moore’s law end</h2>
+<p>The Moore’s law<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> has ruled computation for the last 4 decades. With each generation of processor, the promise of an exponentially faster execution. Transistors are reaching the scale of 10nm, only a 100 time bigger than an atom. Unfortunately, the quantum rules of physics which govern the infinitesimally, start manifest themselves. In particular, quantum tunneling move electrons from classicly unsurmountable barrier, making computations approximate, containing a non negligible fraction of errors.</p>
+<div class="figure">
+<img src="moorelaw.png" alt="A graph that shows the number of transistors through the years. We can see the glimpse of the recent decline" />
+<p class="caption">A graph that shows the number of transistors through the years. We can see the glimpse of the recent decline</p>
+</div>
+<h2 id="the-rise-of-hardware">The rise of Hardware</h2>
+<p>Hardware and Software designate here respectively programs that are executed as code for a general purpose processing unit and programs that are encoded in the circuits. The dichotomy is not very well defined and we can think of it as a spectrum. General-purpose computing on graphics processing units (GPGPU) is in-between. Very efficient when appropriate and used well. They have benefited from high-investment and many generation of iterations and hence, for some tasks, can rivalize or even surpass Hardware.</p>
+<div class="figure">
+<img src="hwsf.jpg" alt="Hardware vs Software" />
+<p class="caption">Hardware vs Software</p>
+</div>
+<p>Hardware has always been there but application-specific integrated circuit (ASIC) has prohibitive costs upfront (in the range of $100M for a tapeout). Reprogrammable hardware like field-programmable gate array (FPGA) have only been used marginally and for some specific industry like high-frequency trading. But now Hardware might be the only solution (until a computing revolution happen, like quantum computing, but this is not realist for the near future) to increase performance. But hardware do not enjoy the same quality of tool, language and integrated development environment (IDE) as software. This is the motivation behind Spatial.</p>
+<h2 id="hardware-as-companion-accelerators">Hardware as companion accelerators</h2>
+<p>In most case, hardware would be inappropriate: running an OS as hardware would be irrealist. However, as a companion to a central-processing unit (CPU also called “the host”), you are able to get the best of both world. The flexibility of software on a CPU with the speed of hardware. In this setup, hardware is considered an “accelerator” (Hence, the term “accelerating hardware”). It accelerates the most demanding subroutines of the CPU. This companionship is already present in modern computer desktops under the form of GPUs for <em>shader</em> operations and sound card for complex sound transformation/output.</p>
+<h2 id="the-right-metric-perfwatt">The right metric: Perf/Watt</h2>
+<p>The right metric for accelerator is performance by energy, as measured in FLOPS per Watt. This is a fair metric for the comparison of different hardware because it shows the intrisic value of the architecture. If the metric was solely performance, then it would suffice to combine multiple of the same architecture. Perf per dollar is not a good metric either because you should also account for the cost of energy at runtime. Hence, Perf/Watt seems like a fair metric to compare architectures.</p>
+<h2 id="spatial">Spatial</h2>
+<p>At the dawn lab, under the lead of <a href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and his grad students, is developped a scala DSL <a href="https://github.com/stanford-ppl/spatial-lang">spatial</a> and its compiler to program Hardware in a higher-level, more user-friendly, more productive language than Verilog. In particular, the control flows are automatically generated when possible. This should enable software engineers to unlock the potential of Hardware. A custom CGRA, Plasticine, has been developped in parralel to Spatial. It leverages some recurrent patterns, in particular parralel patterns and aims to be the most efficient reprogrammable architecture for Spatial.</p>
+<p>There is a large upfront cost but once at a big enough scale, Plasticine could be deployed as an accelerator for most demanding server applications and embedded systems with heavy computing requirements.</p>
+<h2 id="embedded-systems-and-drones">Embedded systems and drones</h2>
+<p>Embedded systems are limited by the amount of power at disposal from the battery and might also have size constraints. At the same time, especially for autonomous vehicles, there is a great need for computing power.</p>
+<p>Thus, developping drone applications with spatial demonstrates the advantages of the platform. As a matter of fact, the filter that has been developped was only made possible because it was run on an accelerating hardware. It would be irrealist to attempt to run it on more conventional micro-transistors. This is why the family in which belong the filter developped here, particles filters, being very computationally expensive, are very seldom used for drones.</p>
+<h1 id="part-i-accelerated-optimal-sensor-fusion-algorithm-for-pose-estimation-of-drones-asynchronous-rao-blackwellized-particle-filter">Part I: Accelerated optimal sensor fusion algorithm for POSE estimation of drones: Asynchronous Rao-Blackwellized Particle filter&quot;</h1>
+<p>Before expanding on the Rao-Blackwellized particle filter, we will introduce here several other filters for POSE estimation for highly dynamic objects: Complementary filter, Kalman Filter, Extended Kalman Filter and finally Rao-Blackwellized Particle filter. The order is from the most conceptually simple, to the most complex. This order is justified not only for pedagogic purposes but also because Rao-blackwellized particle filters use Kalman filters as one of their building block.</p>
+<h2 id="drones-and-collision-avoidance">Drones and collision avoidance</h2>
+<p>The original motivation for the development of accelerated POSE estimation is for the task of collision avoidance by quadcopters. In particular, a collision avoidance algorithm developped at the <a href="https://asl.stanford.edu/">ASL lab</a> and demonstrated here <a href="https://www.youtube.com/watch?v=kdlhfMiWVV0">(https://youtu.be/kdlhfMiWVV0)</a></p>
+<div class="figure">
+<img src="fencing.png" alt="Ross Allen fencing with his drone" />
+<p class="caption">Ross Allen fencing with his drone</p>
+</div>
+<p>where the drone avoids the sword attack froms its creator. At first, it was thought of accelerating the whole algorithm but it was found that one of the most demanding subroutine was pose estimation. POSE is the combination of the position and orientation of an object. Moreover, it was wished to increase the processing rate of the filter such that it could match the input with the fastest sampling rate: its inertial measurement unit (IMU) containing an accelerometer, a gyroscope and a magnetometer.</p>
+<p>The flamewheel f450 is the typical drone in this category. It is surprisingly fast and agile. Given the proper command, it can generate enough thrust to avoid in a very short lapse of time any incoming object.</p>
+<div class="figure">
+<img src="f450.jpg" alt="The Flamewheel f450" />
+<p class="caption">The Flamewheel f450</p>
+</div>
+<h2 id="sensor-fusion">Sensor fusion</h2>
+<p>Sensor fusion is combining of sensory data or data derived from disparate sources such that the resulting information has less uncertainty than would be possible when these sources were used individually. In the context of drones, it is very useful because it enables to combine many unprecise sensor measurement to form a more precise measurement like having precise positionning from 2 less precise GPS (dual GPS setting). It can also permit to combine sensors with different sampling rates: typically precise sensors with low sampling rate and less precise sensors with high sampling rate. Both cases are gonna be relevant here.</p>
+<p>A fundamental explanation why this is possible comes from the central limit theorem: one sample from a distribution with a low variance is as good as n sample from a distribution with variance <span class="math inline">\(n\)</span> times higher.</p>
+<p><span class="math display">\[\mathbb{V}(X_i)=\sigma^2 ~~~~~ \mathbb{E}(X_i) = \mu\]</span> <span class="math display">\[\bar{X} = \frac{1}{n}\sum X_i\]</span> <span class="math display">\[\mathbb{V}(\bar{X}) = \frac{\sigma^2}{n}  ~~~~~ \mathbb{E}(\bar{X}) = \mu\]</span></p>
 <h2 id="notes-on-notation-and-conventions">Notes on notation and conventions</h2>
 <p>The referential by default is the fixed world frame.</p>
 <ul>
@@ -66,8 +106,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><span class="math inline">\(\hat{x}\)</span> designates an estimated variable</li>
 </ul>
 <h2 id="pose">POSE</h2>
-<p>POSE is the task of determining the position and orientation of an object through time. It is a subroutine of SLAM (Software Localization And Mapping). We can formelize the problem as:</p>
-<p>At each timestep, find the best expectation of a function of the hidden variable state (position and orientation), from their initial distribution and observable random variables (such as sensor measurements).</p>
+<p>POSE is the task of estimating the position and orientation of an object through time. It is a subroutine of Software Localization And Mapping (SLAM). We can formelize the problem as:</p>
+<p>At each timestep, find the best expectation of a function of the hidden variable state (position and orientation), from their initial distribution and the history of observable random variables (such as sensor measurements).</p>
 <ul>
 <li>The state <span class="math inline">\(\mathbf{x}\)</span></li>
 <li>The function <span class="math inline">\(g(\mathbf{x})\)</span> such that <span class="math inline">\(g(\mathbf{x}_t) = (\mathbf{p}_t, \mathbf{q}_t)\)</span> where <span class="math inline">\(\mathbf{p}\)</span> is the position and <span class="math inline">\(\mathbf{q}\)</span> is the attitude as a quaternion.</li>
@@ -75,24 +115,28 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul>
 <p>The algorithm inputs are:</p>
 <ul>
-<li>control inputs <span class="math inline">\(\mathbf{u}_t\)</span> (the command sent to the flight controller)</li>
+<li>control inputs <span class="math inline">\(\mathbf{u}_t\)</span> (the commands sent to the flight controller)</li>
 <li>sensor measurements <span class="math inline">\(\mathbf{z}_t\)</span> coming from different sensors with different sampling rate</li>
 <li>information about the sensors (sensor measurements biases and matrix of covariance)</li>
 </ul>
-<h2 id="quaternions">Quaternions</h2>
+<h2 id="quaternion">Quaternion</h2>
 <p>Quaternions are extensions of complex numbers but with 3 imaginary parts. Unit quaternions can be used to represent orientation, also referred to as attitude. Quaternions algebra make rotation composition simple and quaternions avoid the issue of gimbal lock. In all filters presented, they will be used to represent the attitude.</p>
+<p><span class="math display">\[\mathbf{q} = (q.r, q.i, q.j, q.k)^t = (q.r, \boldsymbol{\varrho})^T\]</span></p>
 <p>Quaternion rotations composition is: <span class="math inline">\(q_2 q_1\)</span> which results in <span class="math inline">\(q_1\)</span> being rotated by the rotation represented by <span class="math inline">\(q_2\)</span>. From this, we can deduce that angular velocity integrated over time is simply <span class="math inline">\(q^t\)</span> if <span class="math inline">\(q\)</span> is the local quaternion rotation by unit of time.</p>
 <p>Rotation of a vector by a quaternion is done by: <span class="math inline">\(q v q^*\)</span> where <span class="math inline">\(q\)</span> is the quaternion representing the rotation, <span class="math inline">\(q^*\)</span> its conjugate and <span class="math inline">\(v\)</span> the vector to be rotated.</p>
-<p>It will be useful later to calculate the average quaternion of a set of quaternions. Unfortunately, the average of its components <span class="math inline">\(\frac{1}{N} \sum q_i\)</span> or <em>barycentric</em> mean is unsound: Indeed, attitude do not belong to a vector space but a homogenous Riemannian manifold (the four dimensional unit sphere). To convince yourself of the unsoundness of the <em>barycentric</em> mean, see that the addition and barycentric mean of two unit quaternion is not necessarily an unit quaternion (<span class="math inline">\((1, 0, 0, 0)\)</span> and <span class="math inline">\((-1, 0, 0, 0)\)</span> for instance. Furthermore, angle being periodic, the <em>barycentric</em> mean of a quaternion with angle <span class="math inline">\(-178^\circ\)</span> and another with same body-axis and angle <span class="math inline">\(180^\circ\)</span> gives <span class="math inline">\(1^\circ\)</span> instead of the expected <span class="math inline">\(-179^\circ\)</span>.</p>
-<p>Two solutions are possible to calculate the average quaternion:</p>
-<ul>
-<li>Use the barycentric mean but negate the components of the quaternion that do not belong to the same demi-sphere as an arbitrary quaternion in the set. This solve the aberrant case above and is practical but not very satisfying nonetheless.</li>
-<li>Use the the intrinsic gradient descent algorithm</li>
-</ul>
+<p>The distance of between two quaternions, useful as an error metric is defined by the squared Frobenius norms of attitude matrix differences <span class="citation">(Markley et al. <a href="#ref-markley_averaging_2007">2007</a>)</span>.</p>
+<p><span class="math display">\[\| A(\mathbf{q}_1) - A(\mathbf{q}_2) \|^2_F = 6 - 2 Tr [ A(\mathbf{q}_1)A^t(\mathbf{q}_2) ]\]</span></p>
+<p>where</p>
+<p><span class="math display">\[A(\mathbf{q}) = (q.r^2 - \| \boldsymbol{\varrho} \|^2) I_{3 \times 3} + 2\boldsymbol{\varrho} \boldsymbol{\varrho}^T - 2q.r[\boldsymbol{\varrho} \times]\]</span></p>
+<p><span class="math display">\[[\boldsymbol{\varrho} \times] = \left( \begin{array}{ccc}
+0 &amp; -q.k &amp; q.j \\
+q.k &amp; 0 &amp; -q.i \\
+-q.j &amp; q.i &amp; 0 \\
+\end{array} \right)\]</span></p>
 <h2 id="helper-functions-and-matrices">Helper functions and matrices</h2>
 <p>We introduce some helper matrices.</p>
 <ul>
-<li><span class="math inline">\(\mathbf{R}_{b2f}\{\mathbf{q}\}\)</span> is the body to fixed vector rotation matrix. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(q\)</span>.</li>
+<li><span class="math inline">\(\mathbf{R}_{b2f}\{\mathbf{q}\}\)</span> is the body to fixed vector rotation matrix. It transforms vector in the body frame to the fixed world frame. It takes as parameter the attitude <span class="math inline">\(\mathbf{q}\)</span>.</li>
 <li><span class="math inline">\(\mathbf{R}_{f2b}\{\mathbf{q}\}\)</span> is its inverse matrix (from fixed to body).</li>
 <li><span class="math inline">\(\mathbf{T}_{2a} = (0, 0, 1/m)^T\)</span> is the scaling from thrust to acceleration (by dividing by the weight of the drone: <span class="math inline">\(\mathbf{F} = m\mathbf{a} \Rightarrow \mathbf{a} = \mathbf{F}/m)\)</span> and then multiplying by a unit vector <span class="math inline">\((0, 0, 1)\)</span></li>
 <li><span class="math display">\[R2Q(\boldsymbol{\theta}) = (\cos(\| \boldsymbol{\theta} \| / 2), \sin(\| \boldsymbol{\theta} \| / 2) \frac{\boldsymbol{\theta}}{\| \boldsymbol{\theta} \|} )\]</span> is a function that convert from a local angle rotation to a local quaternion rotation. The definition of this function come from converting <span class="math inline">\(\boldsymbol{\theta}\)</span> to a body-axis angle, and then to a quaternion.</li>
@@ -100,80 +144,152 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><span class="math inline">\(\Delta t\)</span> is the lapse of time between t and the next tick (t+1)</li>
 </ul>
 <h2 id="model">Model</h2>
-<p>The drone is submittied to the wind, the gravity and its own inertia.</p>
+<p>The drone is assumed to have rigid-body physics. It is submitted to the gravity and its own inertia. A rigid body is a solid body in which deformation is zero or so small it can be neglected. The distance between any two given points on a rigid body remains constant in time regardless of external forces exerted on it. This enable to summarise the forces from the rotor as a thrust oriented in the direction normal to the plane formed by the 4 rotosrs, and an angular velocity.</p>
+<p>Those variables are sufficient to describe the evolution of our drone with rigid-body physics:</p>
 <ul>
-<li><span class="math inline">\(\mathbf{w}\)</span> the wind acceleration</li>
-<li><span class="math inline">\(\mathbf{a}\)</span> the total acceleration</li>
-<li><span class="math inline">\(\mathbf{v}\)</span> the velocity</li>
-<li><span class="math inline">\(\mathbf{p}\)</span> the position</li>
+<li><span class="math inline">\(\mathbf{a}\)</span> the total acceleration in the fixed world frame</li>
+<li><span class="math inline">\(\mathbf{v}\)</span> the velocity in the fixed world frame</li>
+<li><span class="math inline">\(\mathbf{p}\)</span> the position in the fixed world frame</li>
 <li><span class="math inline">\(\boldsymbol{\omega}\)</span> the angular velocity</li>
-<li><span class="math inline">\(\mathbf{q}\)</span> the attitude</li>
+<li><span class="math inline">\(\mathbf{q}\)</span> the attitude in the fixed world frame</li>
 </ul>
 <h2 id="sensors">Sensors</h2>
-<p>This work was in collaboration with the ASL Stanford lab for indoor POSE of drones. The sensors at disposition are:</p>
+<p>The sensors at disposition are:</p>
 <ul>
-<li><strong>Accelerometer</strong>: It generates <span class="math inline">\(\mathbf{a_A}\)</span> a measurement of the total acceleration in the body frame referrential the drone is submitted to at a <strong>high</strong> sampling rate. The measurements model is: <span class="math display">\[\mathbf{a_A}(t) = \mathbf{R}_{f2b}\{\mathbf{q}(t)\}\mathbf{a}(t) + \mathbf{a_A}^\epsilon\]</span> where the covariance matrix of the noise of the accelerometer is <span class="math inline">\({\mathbf{R}_{\mathbf{a_A}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{a_A}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{a_A}})\]</span>.</li>
-<li><strong>Gyroscope</strong>:It generates <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}\)</span> a measurement of the angular velocity in the body frame of the drone at the last timestep at a <strong>high</strong> sampling rate. The measurement model is: <span class="math display">\[\mathbf{\boldsymbol{\omega}_G}(t) = \boldsymbol{\omega} + \mathbf{\boldsymbol{\omega}_G}^\epsilon\]</span> where the covariance matrix of the noise of the accelerometer is <span class="math inline">\({\mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{\boldsymbol{\omega}_G}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}})\]</span>.</li>
-<li><strong>Position</strong>: It generates <span class="math inline">\(\mathbf{p_V}\)</span> a measurement of the current positionat a <strong>low</strong> sampling rate. This is usually provided by a <strong>Vicon</strong> (for indoor), <strong>GPS</strong>, a <strong>Tango</strong> or any other position sensor. The measurement model is: <span class="math display">\[\mathbf{p_V}(t) = \mathbf{p}(t) + \mathbf{p_V}^\epsilon\]</span> where the covariance matrix of the noise of the position is <span class="math inline">\({\mathbf{R}_{\mathbf{p_V}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{p_V}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{p_V}})\]</span>.</li>
-<li><strong>Attitude</strong>: It generates <span class="math inline">\(\mathbf{q_V}\)</span> a measurement of the current attitute. This is usually provided in addition to the position by a <strong>Vicon</strong> or a <strong>Tango</strong> at a <strong>low</strong> sampling rate or the <strong>Magnemoter</strong> at a <strong>high</strong> sampling rate if the environment permit it (no high magnetic interference nearby like iron contamination). The measurement model is: <span class="math display">\[\mathbf{q_V}(t) = \mathbf{q}(t)*R2Q(\mathbf{q_V}^\epsilon)\]</span> where the covariance matrix of the noise of the attitude is <span class="math inline">\({\mathbf{R}_{\mathbf{q_V}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{q_V}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{q_V}})\]</span>.</li>
+<li><p><strong>Accelerometer</strong>: It generates <span class="math inline">\(\mathbf{a_A}\)</span> a measurement of the total acceleration in the body frame referrential the drone is submitted to at a <strong>high</strong> sampling rate. If the object is submitted to no acceleration then the accelerometer measure the earth’s gravity field from. From that information, it could be possible to retrieve the attitude. Unfortunately, we are in a highly dynamic setting. Thus, it is possible when we can substract the drone’s acceleration from the thrust to the total acceleration. This would require to know exactly the force exerced by the rotors at each instant. In this work, we assume that doing that separation, while being theoretically possible, is too impractical. The measurements model is: <span class="math display">\[\mathbf{a_A}(t) = \mathbf{R}_{f2b}\{\mathbf{q}(t)\}\mathbf{a}(t) + \mathbf{a_A}^\epsilon\]</span> where the covariance matrix of the noise of the accelerometer is <span class="math inline">\({\mathbf{R}_{\mathbf{a_A}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{a_A}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{a_A}})\]</span>.</p></li>
+<li><p><strong>Gyroscope</strong>:It generates <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}\)</span> a measurement of the angular velocity in the body frame of the drone at the last timestep at a <strong>high</strong> sampling rate. The measurement model is: <span class="math display">\[\mathbf{\boldsymbol{\omega}_G}(t) = \boldsymbol{\omega} + \mathbf{\boldsymbol{\omega}_G}^\epsilon\]</span> where the covariance matrix of the noise of the accelerometer is <span class="math inline">\({\mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{\boldsymbol{\omega}_G}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}})\]</span>.</p></li>
+<li><p><strong>Position</strong>: It generates <span class="math inline">\(\mathbf{p_V}\)</span> a measurement of the current positionat a <strong>low</strong> sampling rate. This is usually provided by a <strong>Vicon</strong> (for indoor), <strong>GPS</strong>, a <strong>Tango</strong> or any other position sensor. The measurement model is: <span class="math display">\[\mathbf{p_V}(t) = \mathbf{p}(t) + \mathbf{p_V}^\epsilon\]</span> where the covariance matrix of the noise of the position is <span class="math inline">\({\mathbf{R}_{\mathbf{p_V}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{p_V}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{p_V}})\]</span>.</p></li>
+<li><p><strong>Attitude</strong>: It generates <span class="math inline">\(\mathbf{q_V}\)</span> a measurement of the current attitute. This is usually provided in addition to the position by a <strong>Vicon</strong> or a <strong>Tango</strong> at a <strong>low</strong> sampling rate or the <strong>Magnemoter</strong> at a <strong>high</strong> sampling rate if the environment permit it (no high magnetic interference nearby like iron contamination). The magnetometer retrieve the attitude by assuming that the sensed magnetic field corresponds to the earth’s magnetic field. The measurement model is: <span class="math display">\[\mathbf{q_V}(t) = \mathbf{q}(t)*R2Q(\mathbf{q_V}^\epsilon)\]</span> where the <span class="math inline">\(3 \times 3\)</span> covariance matrix of the noise of the attitude in radian before being converted by <span class="math inline">\(R2Q\)</span> is <span class="math inline">\({\mathbf{R}_{\mathbf{q_V}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{q_V}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{q_V}})\]</span>.</p></li>
+<li><p><strong>Optical Flow</strong>: A camera that keeps track of the movement by comparing the difference of the position of some reference points. By using a companion distance sensor, it is able to retrieve the difference between the two perspective and thus the change in angle and position. <span class="math display">\[\mathbf{dq_O}(t) = (\mathbf{q}(t-k)\mathbf{q}(t))*R2Q(\mathbf{dq_O}^\epsilon)\]</span> <span class="math display">\[\mathbf{dp_O}(t) = (\mathbf{p}(t) - \mathbf{p}(t-k)) + \mathbf{dp_O}^\epsilon\]</span></p></li>
 </ul>
-<p>This work adapts itself easily to other sensors. Most sensors available in the market are closely related to one of the 4 presented here. For instance an altimeter is a position estimator but for the z-axis only.</p>
+<p>where the <span class="math inline">\(3 \times 3\)</span> covariance matrix of the noise of the attitude variation in radian before being converted by <span class="math inline">\(R2Q\)</span> is <span class="math inline">\({\mathbf{R}_{\mathbf{dq_O}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{dq_O}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{dq_O}})\]</span> and the position variation covariance matrix <span class="math inline">\({\mathbf{R}_{\mathbf{dp_O}}}_{3 \times 3}\)</span> and <span class="math display">\[\mathbf{dp_O}^\epsilon \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{dp_O}})\]</span>.</p>
+<div class="figure">
+<img src="opflow.jpg" alt="Optical flow from a moving drone" />
+<p class="caption">Optical flow from a moving drone</p>
+</div>
+<p>The notable difference with the position or attitude sensor is that the optical flow sensor, like the IMU, only captures time variation, not absolute values.</p>
+<ul>
+<li><strong>Altimeter</strong>: An altimeter is a sensor that measure the altitude of the drone. For instance a LIDAR measure the time for the laser wave to reflect on a surface that is assumed to be the ground. A smart strategy is to only use the altimeter is oriented with a low angle to the earth, else you also have to account that angle in the estimation of the altitude. <span class="math display">\[z_A(t) = \sin(\text{pitch}(\mathbf{q(t)}))(\mathbf{p}(t).z + z_A^\epsilon)\]</span> <span class="math inline">\({R_{z_A}}_{3 \times 3}\)</span> and <span class="math display">\[z_A^\epsilon \sim \mathcal{N}(0, R_{z_A})\]</span></li>
+</ul>
+<div class="figure">
+<img src="altimeter.jpg" alt="Rendering of the LIDAR laser of an altimeter" />
+<p class="caption">Rendering of the LIDAR laser of an altimeter</p>
+</div>
+<p>Some sensors are more relevant indoor and some others outdoor:</p>
+<ul>
+<li><strong>Indoor</strong>: The sensors available indoor are the accelerometer, the gyroscope and the <strong>Vicon</strong>. The Vicon is a system composed of many sensors around a room that is able to track very accurately the position and orientation a mobile object. One issue with relying solely on the <strong>Vicon</strong> is that the sampling rate is low.</li>
+</ul>
+<div class="figure">
+<img src="vicon.jpg" alt="A Vicon setup" />
+<p class="caption">A Vicon setup</p>
+</div>
+<ul>
+<li><strong>Outdoor</strong>: The sensors available outdoor are the accelerometer, the gyroscope, the magnetometer, two GPS, an optical flow and an altimeter.</li>
+</ul>
+<p>We assume that since the biases of the sensor could be known prior to the flight, the sensor have been calibrated and output measurements with no bias. Some filters like the <a href="https://dev.px4.io/en/tutorials/tuning_the_ecl_ekf.html">ekf2</a> of the px4 flight stack keep track of the sensor biases but this is a state augmentation that was not deemed worthwhile.</p>
 <h3 id="control-inputs">Control inputs</h3>
+<p>Observations from the control input are not strictly speaking measurements but input of the state-transition model. The IMU is a sensor, thus stricly speaking, its measurements are not control inputs. However, in the literature, it is standard to use its measurements as control inputs. One of the advantage is that the accelerometer measures acceleration and angular velocity, raw values close from the input we need in our state-transition. If we used a transformation of the thrust sent as command to the rotors, we would have to account for the rotors unprecision, the wind and other disturbances. Another advantage is that since the IMU has very high sampling rate, we can update very frequently the state with new transitions. The drawback is that the accelerometer is noisy. Fortunately, we can take into account the noise as a process model noise.</p>
 <p>The control inputs at disposition are:</p>
 <ul>
-<li><strong>Thrust</strong>: The current thrust in the direction of the orientation of the drone the motors should create. It is given as <span class="math inline">\(t_C\)</span> thrust (as a scalar) in the direction of the attitude.</li>
-<li><strong>Angular velocity</strong>: The angular velocity the motors should create. It is given as <span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}\)</span> angular velocity in the body frame.</li>
+<li><strong>Acceleration</strong>: <span class="math inline">\(\mathbf{a_A}_t\)</span> from the acceloremeter</li>
+<li><strong>Angular velocity</strong>: <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}_t\)</span> from the gyroscope.</li>
 </ul>
-<p>Observations from the control input are not strictly speaking measurements but input of the state-transition model.</p>
-<h3 id="assumptions">Assumptions</h3>
-<p>We assume rigid body physics which is a good enough approximation for drones.</p>
-<p>We assume in this work that the wind is a constant field vector that evolve over time in a &quot;smooth&quot; fashion such that it makes sense to keep track of it.</p>
-<p>We assume that since the biases of the sensor are known, the sensor have been calibrated and output measurements with no bias. Some EKF keep track of the sensor biases but this is a state augmentation that was not deemed worthwhile.</p>
-<p>Finally, we also assume that the profile (surface on which the wind applies pressure on) of the drone against the wind is approximately the same for all attitude of the drone. This is definitely not true and this could be easily fixed by using an approximate and differentiable function to measure the profile of the drone in every direction.</p>
-<h3 id="model-dynamics">Model dynamics</h3>
+<h3 id="model-dynamic">Model dynamic</h3>
 <ul>
-<li><span class="math inline">\(\mathbf{w}(t+1) = \mathbf{w}\)</span></li>
-<li><span class="math inline">\(\mathbf{a}(t+1) = \mathbf{R}_{b2f}\{\mathbf{q}(t+1)\}\mathbf{T}_{2a} {t_C}(t+1) + \mathbf{w}(t) + \mathbf{a}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{a}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{a}_t })\)</span></li>
+<li><span class="math inline">\(\mathbf{a}(t+1) = \mathbf{R}_{b2f}\{\mathbf{q}(t+1)\}(\mathbf{a_A}_t + \mathbf{a_A}^\epsilon_t)\)</span> where <span class="math inline">\(\mathbf{a}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{a}_t })\)</span></li>
 <li><span class="math inline">\(\mathbf{v}(t+1) = \mathbf{v}(t) + \Delta t \mathbf{a}(t) + \mathbf{v}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{v}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{v}_t })\)</span></li>
 <li><span class="math inline">\(\mathbf{p}(t+1) = \mathbf{p}(t) + \Delta t \mathbf{v}(t) + \mathbf{p}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{p}_t })\)</span></li>
-<li><span class="math inline">\(\boldsymbol{\omega}(t+1) = \mathbf{\boldsymbol{\omega}_C}(t+1)\)</span></li>
+<li><span class="math inline">\(\boldsymbol{\omega}(t+1) = \mathbf{\boldsymbol{\omega}_G}_t + \mathbf{\boldsymbol{\omega}_G}^\epsilon_t\)</span> where <span class="math inline">\(\mathbf{p}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{Q}_{\mathbf{\boldsymbol{\omega}_G}_t })\)</span></li>
 <li><span class="math inline">\(\mathbf{q}(t+1) = \mathbf{q}(t)*R2Q(\Delta t \boldsymbol{ \omega(t) })\)</span></li>
 </ul>
-<p>Note that <span class="math inline">\(\mathbf{q}(t+1)\)</span> is known because the model is conditionned under <span class="math inline">\(\boldsymbol{\theta}^{(i)}_{t+1}\)</span>.</p>
-<h2 id="observations">Observations</h2>
-<p><span class="math display">\[\mathbf{y}_t = (\mathbf{z}_t, \mathbf{u}_t)^T = ((\mathbf{a_A}_t, \mathbf{\boldsymbol{\omega}_G}_t, \mathbf{p_V}_t, \mathbf{q_V}_t), ({t_C}_t, \mathbf{\boldsymbol{\omega}_C}_t))^T\]</span></p>
+<p>Note that in our model, <span class="math inline">\(\mathbf{q}(t+1)\)</span> must be known. Fortunately, as we will see later, our Rao-Blackwellized Particle Filter is conditionned under the attitude so it is known.</p>
+<h2 id="state">State</h2>
+<p>The time series of the variables of our dynamic model constitute a hidden markov chain. Indeed, the model is “memoryless” and depends only on the current state and a sampled transition.</p>
+<p>States contain variables that enable us to keep track of some of those hidden variables which is our ultimate goal (for POSE <span class="math inline">\(\mathbf{p}\)</span> and <span class="math inline">\(\mathbf{q}\)</span>). States at time <span class="math inline">\(t\)</span> are denoted by <span class="math inline">\(\mathbf{x}_t\)</span>. Different filters require different state variables depending on their structure and assumptions.</p>
+<h2 id="observation">Observation</h2>
+<p>Observations are revealed variables conditionned under the variables of our dynamic model. Our ultimate goal is to deduce the states from the observations.</p>
+<p>Observations contain the control input <span class="math inline">\(\mathbf{u}\)</span> and the measurements <span class="math inline">\(\mathbf{z}\)</span>.</p>
+<p><span class="math display">\[\mathbf{y}_t = (\mathbf{z}_t, \mathbf{u}_t)^T = (\mathbf{p_V}_t, \mathbf{q_V}_t), ({t_C}_t, \mathbf{\boldsymbol{\omega}_C}_t))^T\]</span></p>
 <h2 id="filtering-and-smoothing">Filtering and smoothing</h2>
-<p><strong>Smoothing</strong> is the statistical task of finding the expectation of the state variable from multiple observation variable ahead.</p>
+<p><strong>Smoothing</strong> is the statistical task of finding the expectation of the state variable from the past history of observations and multiple observation variables ahead</p>
 <p><span class="math display">\[\mathbb{E}[g(\mathbf{x}_{0:t}) | \mathbf{y}_{1:t+k}]\]</span></p>
 <p>Which expand to,</p>
 <p><span class="math display">\[\mathbb{E}[(\mathbf{p}_{0:t}, \mathbf{q}_{0:t}) | (\mathbf{z}_{1:t+k}, \mathbf{u}_{1:t+k})]\]</span></p>
 <p><span class="math inline">\(k\)</span> is a contant and the first observation is <span class="math inline">\(y_1\)</span></p>
 <p><strong>Filtering</strong> is a kind of smoothing where you only have at disposal the current observation variable (<span class="math inline">\(k=0\)</span>)</p>
-<h1 id="complementary-filter">Complementary Filter</h1>
-<h1 id="kalman-filter">Kalman Filter</h1>
-<h2 id="linearity">Linearity</h2>
-<p>Kalman filters are optimal linear filters.</p>
-<p>Hence, Kalman filters are non optimal for our problem because our state has some non-linear components (attitude).</p>
-<p>Indeed, rotations and attitudes belong to <span class="math inline">\(SO(3)\)</span> which is not a vector space.</p>
-<p>However, we can use extension of the Kalman Filter to deal with non-linearity like the Extended Kalman Filters</p>
+<h2 id="complementary-filter">Complementary Filter</h2>
+<p>The complementary filter is the simplest of all filter and very common to retrieve the attitude because of its low computational complexity. The gyroscope and accelerometer both provide a measurement that can help us to estimate the attitude. The gyroscope indeed gives us a noisy measurement of the angular velocity from which we can retrieve the new attitude from the past one by time integration: <span class="math inline">\(\mathbf{q}_t = \mathbf{q}_{t-1}*R2Q(\Delta t \mathbf{\omega})\)</span>.</p>
+<p>This is commonly called “Dead reckoning”<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> and is prone to accumulation error, referred as drift. Indeed, like brownian motions, even if the process is unbiased, the variance grows with time. Reducing the noise cannot solve the issue entirely: even with extremely precise instruments, you are subject to floating point errors.</p>
+<p>Fortunately, even though the accelerometer gives us a highly noisy (vibrations, wind, etc … ) measurement of the orientation, it is not subject to drift because it does not rely on accumulation. Indeed, if not subject to other accelerations, the accelerometer measures the gravity field orientation. Since this field is oriented toward earth, it is possible to retrieve the current rotation from that field and by extension the attitude. However, in the case of a drone, it is subject to continuous and signifiant acceleration and vibration. Hence, the assumption that we retrieve the gravity field directly is wrong. Nevertheless, We could solve this by substracting the acceleration deduced from the thrust control input. It is unpractical so this approach is not pursued in this work, but understanding this filter is still useful.</p>
+<p>The idea of the filter itself is to combine the precise “short-term” measurements of the gyroscope subject to drift with the “long-term” measurements of the accelerometer.</p>
+<h3 id="state-1">State</h3>
+<p>This filter is very simple and it is only needed to store as a state the last estimated attitude along with its timestamp (to calculate <span class="math inline">\(\Delta t\)</span>). <span class="math display">\[\mathbf{x}_t = \mathbf{q}_t\]</span> <span class="math display">\[\hat{\mathbf{q}}_{t+1} = \alpha (\hat{\mathbf{q}}_t + \Delta t \mathbf{\omega}_t) + (1 - \alpha) {\mathbf{q_A}}_{t+1}\]</span> <span class="math inline">\(\alpha \in [0, 1]\)</span>. Usually, <span class="math inline">\(\alpha\)</span> is set to a high-value like <span class="math inline">\(0.98\)</span>. It is very intuitive to see why this should approximately “work”, the data from the accelerometer continuously correct the drift from the gyroscope.</p>
+<div class="figure">
+<img src="ocf.png" alt="CF Graph generated by scala-flow" />
+<p class="caption">CF Graph generated by scala-flow</p>
+</div>
+<p>Figure 9 is the plot of the distance from the true quaternion after 15s of an arbitrary trajectory when <span class="math inline">\(\alpha = 1.0\)</span> meaning that the accelerometer does not correct the drift.</p>
+<div class="figure">
+<embed src="cf100.pdf" />
+<p class="caption">CF with alpha = 1.0</p>
+</div>
+<p>Figure 10 is that same trajectory with <span class="math inline">\(\alpha = 0.98\)</span>.</p>
+<div class="figure">
+<embed src="cf098.pdf" />
+<p class="caption">CF with alpha = 0.98</p>
+</div>
+<h2 id="asynchronous-augmented-complementary-filter">Asynchronous Augmented Complementary Filter</h2>
+<p>As explained previously, in this highly-dynamic setting, combining the gyroscope and the accelerometer to retrieve the attitude is not satisfactory. However, we can reuse the intuition from the complementary filter, which is to combine precise but drifting short-term measurement to other measurements that do not suffer from drift. This enable a simple and computionally inexpensive novel filter that we will be able to use later as a baseline. In this case, the short-term measurements are the acceleration and angular velocity from the IMU, and the non drifting measurements come from the Vicon.</p>
+<p>We will also add the property that the data from the sensors are asynchronous. This is a consequence of the sensors having different sampling rate.</p>
+<ul>
+<li><p><strong>IMU</strong> update <span class="math display">\[\mathbf{v}_t = \mathbf{v}_{t-1} + \Delta t_v \mathbf{a_A}_t\]</span> <span class="math display">\[\boldsymbol{\omega}_t = \boldsymbol{\mathbf{\omega_G}}_t\]</span> <span class="math display">\[\mathbf{p}_t = \mathbf{p}_{t-1} + \Delta t \mathbf{v}_{t-1}\]</span> <span class="math display">\[\mathbf{q}_t = \mathbf{q}_{t-1}R2Q(\Delta t \boldsymbol{\omega}_{t-1})\]</span></p></li>
+<li><p><strong>Vicon</strong> update <span class="math display">\[\mathbf{p}_t = \alpha \mathbf{p_V} + (1 - \alpha) (\mathbf{p}_{t-1} + \Delta t \mathbf{v}_{t-1})\]</span> <span class="math display">\[\mathbf{q}_t = \alpha \mathbf{q_V} + (1 - \alpha) (\mathbf{q}_{t-1}R2Q(\Delta t \boldsymbol{\omega}_{t-1}))\]</span></p></li>
+</ul>
+<h3 id="state-2">State</h3>
+<p>The state has to be more complex because the filter estimate now both the position and the attitude. Furthermore, because of asynchronousity, we have to store the last angular velocity, the last linear velocity, and the last time the linear velocity has been updated (to retrieve <span class="math inline">\(\Delta t_v = t - t_a\)</span> where <span class="math inline">\(t_a\)</span> is the last time we had an update from the accelerometer).</p>
+<p><span class="math display">\[\mathbf{x}_t = (\mathbf{p}_t, \mathbf{q}_t, \boldsymbol{\omega}_t, \mathbf{a}_t, t_a)\]</span></p>
+<div class="figure">
+<img src="acf.png" alt="AACF Graph generated by scala-flow" />
+<p class="caption">AACF Graph generated by scala-flow</p>
+</div>
+<h2 id="kalman-filter">Kalman Filter</h2>
+<h3 id="linearity">Linearity</h3>
+<p>Kalman filters are optimal linear filters. Hence, Kalman filters are non optimal in our context because our state has some non-linear components (attitude). Indeed, rotations and attitudes belong to <span class="math inline">\(SO(3)\)</span> which is not a vector space. Therefore, we cannot use vanilla kalman filters. However, understanding kalman filters gives us a good understanding of Bayesian inference and the filters that we will present after use Kalman filters or are built on top of them but find ways to deal with the non-linearity. One example of such extension is the extended kalman filter that we will present in the following section.</p>
+<h3 id="bayesian-inference">Bayesian inference</h3>
+<p>Bayesian inference is a method of statistical inference in which Bayes’ theorem is used to update the probability for a hypothesis as more evidence or information becomes available. In this Bayes setting, the prior is the estimated distribution of the previous state at time <span class="math inline">\(t-1\)</span>, the likelihood correspond to the likelihood of getting the new data from the sensor given the prior and finally, the posterior is the updated estimated distribution.</p>
+<p>The Kalman filter is a direct application of bayesian inference. It combines the estimated distribution given the estimation of the prior state and the state-transition model and the estimated distribution given the data coming from the sensors. When both the model process and the sensor process can be assumed linear gaussian, this result in a new normal distribution from which the best estimation is straightforward: the mean of that normal distribution.</p>
+<p>By keeping track of the uncertainty, we can optimally combine the normals by knowing what importance to give to the difference between the expected sensor data and the actual sensor data. That factor is the Kalman gain.</p>
+<h2 id="asynchronous-kalman-filter">Asynchronous Kalman Filter</h2>
 <h2 id="extended-kalman-filters">Extended Kalman Filters</h2>
 <p>EKF are linearized Kalman filters of the first order.</p>
 <p>An EKF is semi-developped in the annex.</p>
+<p><strong>TODO</strong>: EKF explanations</p>
 <h2 id="unscented-kalman-filters">Unscented Kalman Filters</h2>
-<p><strong>TODO</strong></p>
-<h1 id="particle-filter">Particle Filter</h1>
+<p><strong>TODO</strong>: UKF explanations</p>
+<h2 id="particle-filter">Particle Filter</h2>
 <p>Particle filters are computionally expensive and that is why their usage is not very popular currently for low-powered embedded systems.</p>
-<p>Particle filters are monte carlo methods which in their general form ... <strong>TODO</strong></p>
+<p>Particle filters are monte carlo methods which in their general form … <strong>TODO</strong></p>
 <p><strong>TODO</strong></p>
-<h2 id="resampling">Resampling</h2>
+<h3 id="average-quaternion">Average quaternion</h3>
+<p>Unfortunately, the average of quaternions components <span class="math inline">\(\frac{1}{N} \sum q_i\)</span> or <em>barycentric</em> mean is unsound: Indeed, attitude do not belong to a vector space but a homogenous Riemannian manifold (the four dimensional unit sphere). To convince yourself of the unsoundness of the <em>barycentric</em> mean, see that the addition and barycentric mean of two unit quaternion is not necessarily an unit quaternion (<span class="math inline">\((1, 0, 0, 0)\)</span> and <span class="math inline">\((-1, 0, 0, 0)\)</span> for instance. Furthermore, angle being periodic, the <em>barycentric</em> mean of a quaternion with angle <span class="math inline">\(-178^\circ\)</span> and another with same body-axis and angle <span class="math inline">\(180^\circ\)</span> gives <span class="math inline">\(1^\circ\)</span> instead of the expected <span class="math inline">\(-179^\circ\)</span>.</p>
+<p>To calculate the average quaternion, we use an algorithm which minimize a metric that correspond to the weighted attitude difference to the average, namely the weighted sum of the squared Frobenius norms of attitude matrix differences. <span class="math display">\[\bar{\mathbf{q}} = arg \min_{q \in \mathbb{S}^3} \sum w_i \| A(\mathbf{q}) - A(\mathbf{q}_i) \|^2_F\]</span></p>
+<p>where <span class="math inline">\(\mathbb{S}^3\)</span> denotes the unit sphere.</p>
+<p>The attitude matrix <span class="math inline">\(A(\mathbf{q})\)</span> and its corresponding Frobenius norm are out of scope of this work but can be found in more details in <span class="citation">(Markley et al. <a href="#ref-markley_averaging_2007">2007</a>)</span></p>
+<h3 id="resampling">Resampling</h3>
 <p>When the number of effective particles is too low (<span class="math inline">\(N/10\)</span>), we apply systematic resampling</p>
-<h1 id="rao-blackwellized-particle-filter">Rao-Blackwellized Particle Filter</h1>
-<h2 id="introduction-1">Introduction</h2>
+<h2 id="rao-blackwellized-particle-filter">Rao-Blackwellized Particle Filter</h2>
+<h3 id="introduction-1">Introduction</h3>
 <p>Compared to a plain PF, RPBF leverage the linearity of some components of the state by assuming our model gaussian conditionned on a latent variable: Given the attitude <span class="math inline">\(q_t\)</span>, our model is linear. This is where RPBF shines: We use particle filtering to estimate our latent variable, the attitude, and we use the optimal kalman filter to estimate the state variable.</p>
+<p>This main inspiration from this approach is <span class="citation">(Vernaza and Lee <a href="#ref-vernaza_rao-blackwellized_2006">2006</a>)</span>. However, it differs by:</p>
+<ul>
+<li>adapt the filter to drones by taking into account that the system is too dynamic for assuming that the accelerometer simply output the gravity vector. This is solved by augmenting the state with the acceleration as shown later.</li>
+<li>not use measurements of the IMU as control inputs (this is usually used for wheeled vehicles because of the drift from the wheels) but have both control inputs and measurements.</li>
+<li>add an attitude sensor.</li>
+</ul>
 <p>We introduce the latent variable <span class="math inline">\(\boldsymbol{\theta}\)</span></p>
 <p>The latent variable <span class="math inline">\(\boldsymbol{\theta}\)</span> has for sole component the attitude: <span class="math display">\[\boldsymbol{\theta} = (\mathbf{q})\]</span></p>
-<p><span class="math inline">\(q_t\)</span> is estimated from the product of the attitude of all particles <span class="math inline">\(\mathbf{\theta^{(i)}} = \mathbf{q}^{(i)}_t\)</span> as the &quot;average&quot; quaternion <span class="math inline">\(\mathbf{q}_t = avgQuat(\mathbf{q}^n_t)\)</span>. <span class="math inline">\(x^n\)</span> designates the product of all n arbitrary particle.</p>
-<p>We use importance sampling ... <strong>TODO</strong></p>
+<p><span class="math inline">\(q_t\)</span> is estimated from the product of the attitude of all particles <span class="math inline">\(\mathbf{\theta^{(i)}} = \mathbf{q}^{(i)}_t\)</span> as the “average” quaternion <span class="math inline">\(\mathbf{q}_t = avgQuat(\mathbf{q}^n_t)\)</span>. <span class="math inline">\(x^n\)</span> designates the product of all n arbitrary particle.</p>
+<p>We use importance sampling … <strong>TODO</strong></p>
 <p>The weight definition is:</p>
 <p><span class="math display">\[w^{(i)}_t = \frac{p(\boldsymbol{\theta}^{(i)}_{0:t} | \mathbf{y}_{1:t})}{\pi(\boldsymbol{\theta}^{(i)}_{0:t} | \mathbf{y}_{1:t})}\]</span></p>
 <p>From the definition, it is proovable that:</p>
@@ -183,28 +299,29 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>Hence,</p>
 <p><span class="math display">\[w^{(i)}_t \propto p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\]</span></p>
 <p>We then sum all <span class="math inline">\(w^{(i)}_t\)</span> to find the normalization constant and retrieve the actual <span class="math inline">\(w^{(i)}_t\)</span></p>
-<h2 id="state">State</h2>
+<h3 id="state-3">State</h3>
 <p><span class="math display">\[\mathbf{x}_t = (\mathbf{w}_t, \mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t)^T\]</span></p>
 <p>Initial state <span class="math inline">\(\mathbf{x}_0 = (\mathbf{0}, \mathbf{0}, \mathbf{0})\)</span></p>
 <p>Initial covariance matrix <span class="math inline">\(\mathbf{\Sigma}_{9 \times 9} = \epsilon \mathbf{I}_{9 \times 9}\)</span></p>
-<h2 id="latent-variable">Latent variable</h2>
+<h3 id="latent-variable">Latent variable</h3>
 <p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q({\Delta t} (\mathbf{\boldsymbol{\omega}_C}_t+\mathbf{\boldsymbol{\omega}_C}^\epsilon_t))\]</span></p>
 <p><span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\mathbf{\boldsymbol{\omega}_C}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_C}_t })\)</span></p>
 <p>Initial attitude <span class="math inline">\(\mathbf{q_0}\)</span> is sampled such that the drone pitch and roll are none (parralel to the ground) but the yaw is unknown and uniformly distributed.</p>
-<h2 id="measurements-model">Measurements model</h2>
+<p>Note that <span class="math inline">\(\mathbf{q}(t+1)\)</span> is known in the <a href="#model-dynamic">model dynamic</a> because the model is conditionned under <span class="math inline">\(\boldsymbol{\theta}^{(i)}_{t+1}\)</span>.</p>
+<h3 id="measurement-model">Measurement model</h3>
 <ol style="list-style-type: decimal">
 <li>Accelerometer: <span class="math display">\[\mathbf{a_A}(t) = \mathbf{R}_{f2b}\{\mathbf{q}(t)\}\mathbf{a}(t) + \mathbf{a_A}^\epsilon_t\]</span> where <span class="math inline">\(\mathbf{a_A}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{a_A}_t })\)</span></li>
-<li>Gyroscope: <span class="math display">\[\mathbf{\boldsymbol{\omega}_G}(t) = Q2R(\mathbf{q}^{(i)}(t)^-1\mathbf{q}^{(i)}(t-1))/\Delta t + \mathbf{\boldsymbol{\omega}_G}^\epsilon(t)\]</span> where <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}})\)</span></li>
+<li>Gyroscope: <span class="math display">\[\mathbf{\boldsymbol{\omega}_G}(t) = Q2R({\mathbf{q}^{(i)}(t-1)}^{-1}\mathbf{q}^{(i)}(t))/\Delta t + \mathbf{\boldsymbol{\omega}_G}^\epsilon(t)\]</span> where <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}})\)</span></li>
 <li>Position: <span class="math display">\[\mathbf{p_V}(t) = \mathbf{p}(t)^{(i)} + \mathbf{p_V}^\epsilon_t\]</span> where <span class="math inline">\(\mathbf{p_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{p_V}_t })\)</span></li>
 <li>Attitude: <span class="math display">\[\mathbf{q_V}(t) = \mathbf{q}(t)^{(i)}*R2Q(\mathbf{q_V}^\epsilon_t)\]</span> where <span class="math inline">\(\mathbf{q_V}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{q_V}_t })\)</span></li>
 </ol>
-<h2 id="kalman-prediction">Kalman prediction</h2>
+<h3 id="kalman-prediction">Kalman prediction</h3>
 <p>The model dynamics define the following model, state-transition matrix <span class="math inline">\(\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the control-input matrix <span class="math inline">\(\mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the process noise <span class="math inline">\(\mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter and its covariance <span class="math inline">\(\mathbf{Q}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span></p>
 <p><span class="math display">\[\mathbf{x}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}_{t-1} + \mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{u}_t + \mathbf{w}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
 <p><span class="math display">\[\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\}_{12 \times 12} = 
-\left( \begin{array}{ccc}
-\mathbf{I}_{3 \times 3} &amp;  &amp; &amp; \\
-\mathbf{I}_{3 \times 3} &amp;  &amp; &amp; \\
+\left( \begin{array}{cccc}
+\mathbf{I}_{3 \times 3} &amp; &amp; &amp; \\
+\mathbf{I}_{3 \times 3} &amp; &amp; &amp; \\
 &amp; \Delta t~\mathbf{I}_{3 \times 3} &amp; \mathbf{I}_{3 \times 3} &amp; \\
 &amp; &amp; \Delta t~\mathbf{I}_{3 \times 3} &amp; \mathbf{I}_{3 \times 3}
 \end{array} \right)\]</span></p>
@@ -223,12 +340,12 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 &amp; &amp; &amp;\mathbf{Q}_{\mathbf{p}_t }
 \end{array} \right)\]</span></p>
 <p><span class="math display">\[\hat{\mathbf{x}}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{B}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{u}_t \]</span> <span class="math display">\[ \mathbf{\Sigma}^{-(i)}_t = \mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{\Sigma}^{-(i)}_{t-1}  (\mathbf{F}_t\{\boldsymbol{\theta}^{(i)}_t\})^T + \mathbf{Q}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
-<h2 id="kalman-measurements-update">Kalman measurements update</h2>
+<h3 id="kalman-measurement-update">Kalman measurement update</h3>
 <p>The <a href="#measurements-model-1">measurement model</a> defines how to compute <span class="math inline">\(p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-_K1})\)</span></p>
 <p>In the <a href="#measurements-model-1">measurement model</a>, (1, 3) define the observation matrix <span class="math inline">\(\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span>, the observation noise <span class="math inline">\(\mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> and its covariance matrix <span class="math inline">\(\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}\)</span> for the Kalman filter.</p>
-<p><span class="math display">\[(\mathbf{a_A}_t, \mathbf{p_V}_t)^T  = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} (\mathbf{w}_t, \mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t)^T + \mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
+<p><span class="math display">\[(\mathbf{a_A}_t, \mathbf{p_V}_t)^T  = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} (\mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t)^T + \mathbf{v}_t\{\boldsymbol{\theta}^{(i)}_t\}\]</span></p>
 <p><span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{6 \times 12} = 
-\left( \begin{array}{ccc}
+\left( \begin{array}{cccc}
 \mathbf{I}_{3 \times 3} &amp; \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} &amp; &amp; \mathbf{0}_{3 \times 3} \\
 &amp; &amp; \mathbf{I}_{3 \times 3} &amp; \\
 \end{array} \right)\]</span></p>
@@ -246,10 +363,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><p>for <span class="math inline">\(\mathbf{a_A}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\} \mathbf{0}_{3 \times 3})\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} = \mathbf{R}_{f2b}\{\mathbf{q}^{(i)}_{t}\}\mathbf{R}_{\mathbf{a_A}_t } \]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{a_A}_t - \hat{\mathbf{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{a_A}_t; \hat{\mathbf{z}}_t, \mathbf{S})\]</span></p></li>
 <li><p>for <span class="math inline">\(\mathbf{p_V}_t\)</span>: <span class="math display">\[\mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 6} = (\mathbf{0}_{3 \times 3} \mathbf{I}_{3 \times 3} )\]</span> <span class="math display">\[\mathbf{R}_t\{\boldsymbol{\theta}^{(i)}_t\}_{3 \times 3} =  \mathbf{R}_{\mathbf{p_V}_t }\]</span> <span class="math display">\[\mathbf{x}^{(i)}_t = \mathbf{H}_t\{\boldsymbol{\theta}^{(i)}_t\} \mathbf{x}^{(i)}_{t-1} + \mathbf{K}(\mathbf{p_V}_t - \hat{\mathbf{z}})\]</span> <span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{p_V}_t; \hat{\mathbf{z}}_t, \mathbf{S})\]</span></p></li>
 </ul>
-<h2 id="other-sources-or-reweighting">Other sources or reweighting</h2>
+<h3 id="other-sources-or-reweighting">Other sources or reweighting</h3>
 <p>In the <a href="#measurements-model">measurement model</a>, (2 and 4) define two other weight updates.</p>
-<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{\boldsymbol{\omega}_G}_t; (\mathbf{q}^{(i)}_t - \mathbf{q}^{(i)}_{t-1})/\Delta t,~ \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t})\]</span></p>
-<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{q_V}_t; \mathbf{q}^{(i)}_t,~ \mathbf{R}_{\mathbf{q_V}_t })\]</span></p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{\boldsymbol{\omega}_G}_t; Q2R({\mathbf{q}^{(i)}_{t-1}}^{-1}\mathbf{q}^{(i)}_t)/\Delta t,~ \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}})\]</span></p>
+<p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(Q2R({\mathbf{q}^{(i)}}^{-1}\mathbf{q_V}_t);~ 0 ,~ \mathbf{R}_{\mathbf{q_V}})\]</span></p>
 <h2 id="algorithm-summary">Algorithm summary</h2>
 <ol style="list-style-type: decimal">
 <li>Initiate <span class="math inline">\(N\)</span> particles with <span class="math inline">\(\mathbf{x}_0\)</span>, <span class="math inline">\(\mathbf{q}_0 ~ \sim p(\mathbf{q}_0)\)</span>, <span class="math inline">\(\mathbf{\Sigma}_0\)</span> and <span class="math inline">\(w = 1/N\)</span></li>
@@ -274,11 +391,11 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul>
 <h1 id="appendix">Appendix</h1>
 <h2 id="semi-developped-kalman-filter">Semi developped Kalman filter</h2>
-<h2 id="state-1">State</h2>
+<h2 id="state-4">State</h2>
 <p>For the EKF, we are gonna use the following state:</p>
-<p><span class="math display">\[\mathbf{x}_t = (\mathbf{w}_t, \mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t, \boldsymbol{\omega}_t, \mathbf{q}_t)^T\]</span></p>
+<p><span class="math display">\[\mathbf{x}_t = (\mathbf{a}_t, \mathbf{v}_t, \mathbf{p}_t, \boldsymbol{\omega}_t, \mathbf{q}_t)^T\]</span></p>
 <p>Initial state <span class="math inline">\(\mathbf{x}_0\)</span> at <span class="math inline">\((\mathbf{0}, \mathbf{0}, \mathbf{0}, \mathbf{0}, \mathbf{0}, (1, 0, 0, 0))\)</span></p>
-<h2 id="measurements-model-1">Measurements model</h2>
+<h2 id="measurements-model">Measurements model</h2>
 <ol style="list-style-type: decimal">
 <li>Accelerometer: <span class="math display">\[\mathbf{a_A}(t) = \mathbf{R}_{f2b}\{\mathbf{q}(t)\}\mathbf{a}(t) + \mathbf{w}(t) + \mathbf{a_A}^\epsilon_t\]</span> where <span class="math inline">\(\mathbf{a_A}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{a_A}_t })\)</span></li>
 <li>Gyroscope: <span class="math display">\[\mathbf{\boldsymbol{\omega}_G}(t) = \mathbf{\boldsymbol{\omega}_G} + \mathbf{\boldsymbol{\omega}_G}^\epsilon(t)\]</span> where <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}})\)</span></li>
@@ -297,7 +414,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 \mathbf{q}*R2Q({\Delta t} \boldsymbol{\omega})
 \end{array} \right)\]</span></p>
 <p>Now, we need to derive the jacobian of <span class="math inline">\(f\)</span>. It is quite trivial except for the partial derivatives of <span class="math inline">\(q\)</span>. We will use sagemath to retrieve the 28 interesting different partial derivatives of <span class="math inline">\(q\)</span> as described in the appendix A.</p>
-<p><span class="math display">\[{\mathbf{F}_t}_{19 \times 19} = \left . \frac{\partial f}{\partial \mathbf{x} } \right \vert _{\hat{\mathbf{x}}_{t-1},\mathbf{u}_{t-1}} = \left( \begin{array}{ccccc}
+<p><span class="math display">\[{\mathbf{F}_t}_{19 \times 19} = \left . \frac{\partial f}{\partial \mathbf{x} } \right \vert _{\hat{\mathbf{x}}_{t-1},\mathbf{u}_{t-1}} = \left( \begin{array}{cccccc}
 \mathbf{I}_{3 \times 3} &amp; &amp; &amp; &amp; &amp; \\
 \mathbf{I}_{3 \times 3} &amp; &amp; &amp; &amp; &amp; \\
 &amp; \Delta t~\mathbf{I}_{3 \times 3} &amp; \mathbf{I}_{3 \times 3} &amp; &amp; &amp; \\
@@ -307,7 +424,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 \end{array} \right)\]</span></p>
 <p>where <span class="math inline">\(\mathbf{F_q}_t\)</span> is defined by the script sagemath in the appendix.</p>
 <p><span class="math display">\[\hat{\mathbf{x}}^{-(i)}_t = f(\mathbf{x}^{(i)}_{t-1}, \mathbf{u}_t)\]</span> <span class="math display">\[\mathbf{\Sigma}^{-(i)}_t = \mathbf{F}_{t-1} \mathbf{\Sigma}^{-(i)}_{t-1}  \mathbf{F}_{t-1}^T + \mathbf{Q}_t\]</span></p>
-<h3 id="kalman-measurements-update-1">Kalman measurements update</h3>
+<h3 id="kalman-measurements-update">Kalman measurements update</h3>
 <p><span class="math display">\[\mathbf{z}_t = h(\mathbf{x}_t) + \mathbf{v}_t\]</span></p>
 <p>The <a href="#measurements-model">measurement model</a> defines <span class="math inline">\(h(\mathbf{x})\)</span></p>
 <p><span class="math display">\[\left( \begin{array}{c}
@@ -329,14 +446,14 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 &amp; &amp; &amp; \mathbf{I}_{3 \times 3} &amp;  \\
 &amp; &amp; &amp; &amp; \mathbf{I}_{4 \times 4}  \\
 \end{array} \right)\]</span></p>
-<p><span class="math display">\[\mathbf{R}_t_{13 \times 13} = 
+<p><span class="math display">\[{\mathbf{R}_t}_{13 \times 13} = 
 \left( \begin{array}{cccc}
-\mathbf{R}_{\mathbf{a_A}_t } &amp; &amp; &amp;   \\
-&amp; \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t} &amp; &amp; \\
-&amp; &amp; \mathbf{R}_{\mathbf{p_V}_t } &amp; \\
-&amp; &amp; &amp; \frac{1}{2}\mathbf{R}_{\mathbf{q_V}_t }*\mathbf{q}_{t-1}
+\mathbf{R}_{\mathbf{a_A}_t} &amp; &amp; &amp; \\
+&amp; \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}} &amp; &amp; \\
+&amp; &amp; \mathbf{R}_{\mathbf{p_V}} &amp; \\
+&amp; &amp; &amp; ???\\
 \end{array} \right)\]</span></p>
-<p><span class="math display">\[1/2*\mathbf{R}_{\mathbf{q_V}_t }*\mathbf{q}_{t-1}\]</span></p>
+<p><strong>TODO</strong>: Use (Shibani, 2011) to replace ???</p>
 <h3 id="kalman-update-1">Kalman update</h3>
 <p><span class="math display">\[\mathbf{S} = \mathbf{H}_t \mathbf{\Sigma}^{-}_t \mathbf{H}_t^T + \mathbf{R}_t\]</span> <span class="math display">\[\hat{\mathbf{z}} = h(\hat{\mathbf{x}}^{-}_t)\]</span> <span class="math display">\[\mathbf{K} = \mathbf{\Sigma}^{-}_t \mathbf{H}_t^T \mathbf{S}^{-1}\]</span> <span class="math display">\[\mathbf{\Sigma}_t = \mathbf{\Sigma}^-_t + \mathbf{K} \mathbf{S} \mathbf{K}^T\]</span> <span class="math display">\[\hat{\mathbf{x}}_t = \hat{\mathbf{x}}^{-}_t + \mathbf{K}(\mathbf{z}_t - \hat{\mathbf{z}})\]</span></p>
 <h2 id="f-partial-derivatives">F partial derivatives</h2>
@@ -440,5 +557,21 @@ vs <span class="op">=</span> <span class="bu">map</span>(<span class="kw">lambda
 (q3, <span class="dv">0</span>, <span class="op">-</span><span class="dv">2</span><span class="op">*</span>ay<span class="op">*</span>q0 <span class="op">+</span> <span class="dv">2</span><span class="op">*</span>az<span class="op">*</span>q1 <span class="op">-</span> <span class="dv">2</span><span class="op">*</span>ax<span class="op">*</span>q3)
 (q3, <span class="dv">1</span>, <span class="dv">2</span><span class="op">*</span>ax<span class="op">*</span>q0 <span class="op">+</span> <span class="dv">2</span><span class="op">*</span>az<span class="op">*</span>q2 <span class="op">-</span> <span class="dv">2</span><span class="op">*</span>ay<span class="op">*</span>q3)
 (q3, <span class="dv">2</span>, <span class="dv">2</span><span class="op">*</span>ax<span class="op">*</span>q1 <span class="op">+</span> <span class="dv">2</span><span class="op">*</span>ay<span class="op">*</span>q2 <span class="op">+</span> <span class="dv">2</span><span class="op">*</span>az<span class="op">*</span>q3)</code></pre></div>
+<h1 id="references" class="unnumbered">References</h1>
+<div id="refs" class="references">
+<div id="ref-markley_averaging_2007">
+<p>Markley, F. Landis, Yang Cheng, John Lucas Crassidis, and Yaakov Oshman. 2007. “Averaging Quaternions.” <em>Journal of Guidance, Control, and Dynamics</em> 30 (4): 1193–7. <a href="http://arc.aiaa.org/doi/abs/10.2514/1.28949" class="uri">http://arc.aiaa.org/doi/abs/10.2514/1.28949</a>.</p>
+</div>
+<div id="ref-vernaza_rao-blackwellized_2006">
+<p>Vernaza, Paul, and Daniel D. Lee. 2006. “Rao-Blackwellized Particle Filtering for 6-DOF Estimation of Attitude and Position via GPS and Inertial Sensors.” In <em>Robotics and Automation, 2006. ICRA 2006. Proceedings 2006 IEEE International Conference on</em>, 1571–8. IEEE. <a href="http://ieeexplore.ieee.org/abstract/document/1641931/" class="uri">http://ieeexplore.ieee.org/abstract/document/1641931/</a>.</p>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>The observation that the number of transistors in a dense integrated circuit doubles approximately every two years has governed th<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>The etymology for “Dead reckoning” comes from the mariners of the XVIIth century that used to calculate the position of the vessel with log book. The interpretation of “dead” is subject to debate. Some argue that it is a mispelling of “ded” as in “deduced”. Others argue that it should be read by its old meaning: <em>absolute</em>.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>
 </body>
 </html>
