@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Arch Linux) (preloaded format=pdflatex 2016.11.25)  28 FEB 2017 07:23
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Arch Linux) (preloaded format=pdflatex 2016.11.25)  11 MAR 2017 04:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1299,11 +1299,11 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  ) 
 Here is how much of TeX's memory you used:
- 29968 strings out of 493013
- 541980 string characters out of 6139316
+ 29970 strings out of 493013
+ 542000 string characters out of 6139316
  607530 words of memory out of 5000000
  33086 multiletter control sequences out of 15000+600000
- 59747 words of font info for 62 fonts, out of 8000000 for 9000
+ 59830 words of font info for 63 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  69i,11n,58p,10399b,334s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{/usr/share/texmf-dist/fo
@@ -1314,7 +1314,7 @@ m/lmbx10.pfb></usr/share/texmf-dist/fonts/type1/public/lm/lmr10.pfb></usr/share
 public/lm/lmr17.pfb></usr/share/texmf-dist/fonts/type1/public/lm/lmro10.pfb></u
 sr/share/texmf-dist/fonts/type1/public/lm/lmro17.pfb></usr/share/texmf-dist/fon
 ts/type1/public/marvosym/marvosym.pfb>
-Output written on RubenFiszel_resume.pdf (1 page, 192728 bytes).
+Output written on RubenFiszel_resume.pdf (1 page, 192822 bytes).
 PDF statistics:
  68 PDF objects out of 1000 (max. 8388607)
  56 compressed objects within 1 object stream
