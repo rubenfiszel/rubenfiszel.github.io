@@ -40,11 +40,11 @@
 </div>
 <div class="post">
   <h3 id="about">About</h3>
-<p>This post is the part I out of III of my <a href="assets/thesis.pdf">master thesis</a> at the <a href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford, under <a href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and <a href="http://lampwww.epfl.ch/~odersky/">Prof. Odersky</a> supervision. The central themes of this thesis are sensor fusion and spatial, an hardware accelerator language (Verilog is also one, but tedious).</p>
-<p>This part is about an application of hardware acceleration, sensor fusion for drones. Part II will be about <a href="https://github.com/rubenfiszel/scala-flow/">scala-flow</a>, a library made during my thesis as a development tool for Spatial inspired by Simulink. This library eased the development of the filter but is also intended to be general purpose. Part III will be the development of an interpreter for spatial, and the spatial implementation of the RBPF presented in Part I. If you are only interested in the filter, you can skip the introduction.</p>
+<p>This post is the part I out of IV of my <a href="assets/thesis.png">master thesis</a> at the <a href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford, under <a href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and <a href="http://lampwww.epfl.ch/~odersky/">Prof. Odersky</a> supervision. The central themes of this thesis are sensor fusion and spatial, an hardware description language (Verilog is also one, but tedious).</p>
+<p>This part is about an application of hardware acceleration, sensor fusion for drones. Part II will be about <a href="https://github.com/rubenfiszel/scala-flow/">scala-flow</a>, a library made during my thesis as a development tool for Spatial inspired by Simulink. This library eased the development of the filter but is also intended to be general purpose. Part III is about the development of an interpreter for spatial. Finally, Part IV is about the spatial implementation of the asynchronous Rao-Blackwellized Particle filter presented in Part I. If you are only interested in the filter, you can skip the introduction.</p>
 <h1 id="introduction" class="unnumbered">Introduction</h1>
 <h2 id="moores-law-end">Moore’s law end</h2>
-<p>The Moore’s law <a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> has ruled computation for the last 4 decades. With each generation of processor, the promise of an exponentially faster execution. Transistors are reaching the scale of 10nm, only a 100 time bigger than an atom. Unfortunately, the quantum rules of physics which govern the infinitesimally, start manifest themselves. In particular, quantum tunneling move electrons from classicly unsurmountable barrier, making computations approximate, containing a non negligible fraction of errors.</p>
+<p>The Moore’s law<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> has ruled computation for the last 4 decades. With each generation of processor, the promise of an exponentially faster execution. Transistors are reaching the scale of 10nm, only a 100 time bigger than an atom. Unfortunately, the quantum rules of physics which govern the infinitesimally, start manifest themselves. In particular, quantum tunneling move electrons from classicly unsurmountable barrier, making computations approximate, containing a non negligible fraction of errors.</p>
 <div class="figure">
 <img src="moorelaw.png" alt="The number of transistors throughout the years. We can observe a recent start of a decline" />
 <p class="caption">The number of transistors throughout the years. We can observe a recent start of a decline</p>
@@ -66,7 +66,7 @@
 <h2 id="embedded-systems-and-drones">Embedded systems and drones</h2>
 <p>Embedded systems are limited by the amount of power at disposal from the battery and might also have size constraints. At the same time, especially for autonomous vehicles, there is a great need for computing power.</p>
 <p>Thus, developping drone applications with spatial demonstrates the advantages of the platform. As a matter of fact, the filter that has been developped was only made possible because it was run on an accelerating hardware. It would be irrealist to attempt to run it on more conventional micro-transistors. This is why the family in which belong the filter developped here, particles filters, being very computationally expensive, are very seldom used for drones.</p>
-<h1 id="part-i-accelerated-optimal-sensor-fusion-algorithm-for-pose-estimation-of-drones-asynchronous-rao-blackwellized-particle-filter">Part I: Accelerated optimal sensor fusion algorithm for POSE estimation of drones: Asynchronous Rao-Blackwellized Particle filter&quot;</h1>
+<h1 id="sensor-fusion-algorithm-for-pose-estimation-of-drones-asynchronous-rao-blackwellized-particle-filter">Sensor fusion algorithm for POSE estimation of drones: Asynchronous Rao-Blackwellized Particle filter</h1>
 <p>POSE is the combination of the position and orientation of an object. POSE estimation is important for drones. It is a subroutine of SLAM (Simultaneous localization and mapping) and it is a central part of motion planning and motion control. More accurate and more reliable POSE estimation results in more agile, more reactive and safer drones. Drones are an intellectually stimulating subject but in the near-future they might also see their usage increase exponentially. In this context, developping and implementing new filter for POSE estimation is both important for the field of robotics but also to demonstrate the importance of hardware acceleration. Indeed, the best and last filter presented here is only made possible because it can be hardware accelerated with Spatial. However, the spatial implementation will be presented in Part III.</p>
 <p>Before expanding on the Rao-Blackwellized particle filter, we will introduce here several other filters for POSE estimation for highly dynamic objects: Complementary filter, Kalman Filter, Extended Kalman Filter and finally Rao-Blackwellized Particle filter. The order is from the most conceptually simple, to the most complex. This order is justified because complex filters aim to alleviate some of the flaws of their simpler counterpart. It is important to understand what are those weakness and how we can alleviate them.</p>
 <h2 id="drones-and-collision-avoidance">Drones and collision avoidance</h2>
@@ -109,13 +109,23 @@
 <li>information about the sensors (sensor measurements biases and matrix of covariance)</li>
 </ul>
 <h2 id="data-generation">Data generation</h2>
-<p><strong>TODO</strong></p>
+<p>The difficulties with using real flight data is that you need to get the <em>true</em> trajectory and that you need enough data to check the efficiency of the filters.</p>
+<p>To avoid those issues, the flight data is simulated through a model of trajectory generation. This model as described in <span class="citation">[<a href="#ref-mueller_computationally_2015">1</a>]</span>, The motion primitives are defined by the quadrocopter’s initial state, the desired motion duration, and any combination of components of the quadrocopter’s position, velocity and acceleration at the motion’s end. Closed form solutions for the primitives are given, which minimize a cost function related to input aggressiveness.</p>
+<p>The bulk of the method is that a differential equation representing the difference of position, velocity and acceleration between the starting and ending state is solved with the <a href="https://en.wikipedia.org/wiki/Pontryagin%27s_maximum_principle">Pontryagin’s minimum principle</a> using the appropriate <a href="https://en.wikipedia.org/wiki/Hamiltonian_(control_theory)">Hamiltonian</a>. Then, from that closed form solution, a per-axis cost can be calculated to pick the “least aggressive” trajectory out of different candidates. Finally, the feasibility of the trajectory is computed using the constraints of maximum thrust and body rate (angular velocity) limits.</p>
+<p>For the purpose of this work, a scala implementation of the model was realized. Then, some keypoints containing gaussian components for the position, velocity acceleration, and duration were tried until a feasible set of keypoints was found. This method of data generation is both fast and a good enough approximation of the actual trajectories that a drone would perform in the real world.</p>
+<video autoplay loop>
+<source src="flight.webm" type="video/webm">
+</video>
+<div class="figure">
+<embed src="flight.webm" width="400" />
+<p class="caption">Visualisation of an example of a synthetic generated flight trajectory</p>
+</div>
 <h2 id="quaternion">Quaternion</h2>
 <p>Quaternions are extensions of complex numbers but with 3 imaginary parts. Unit quaternions can be used to represent orientation, also referred to as attitude. Quaternions algebra make rotation composition simple and quaternions avoid the issue of gimbal lock. In all filters presented, they will be used to represent the attitude.</p>
 <p><span class="math display">\[\mathbf{q} = (q.r, q.i, q.j, q.k)^t = (q.r, \boldsymbol{\varrho})^T\]</span></p>
 <p>Quaternion rotations composition is: <span class="math inline">\(q_2 q_1\)</span> which results in <span class="math inline">\(q_1\)</span> being rotated by the rotation represented by <span class="math inline">\(q_2\)</span>. From this, we can deduce that angular velocity integrated over time is simply <span class="math inline">\(q^t\)</span> if <span class="math inline">\(q\)</span> is the local quaternion rotation by unit of time.</p>
 <p>Rotation of a vector by a quaternion is done by: <span class="math inline">\(q v q^*\)</span> where <span class="math inline">\(q\)</span> is the quaternion representing the rotation, <span class="math inline">\(q^*\)</span> its conjugate and <span class="math inline">\(v\)</span> the vector to be rotated.</p>
-<p>The distance of between two quaternions, useful as an error metric is defined by the squared Frobenius norms of attitude matrix differences <span class="citation">[@markley_averaging_2007]</span>.</p>
+<p>The distance of between two quaternions, useful as an error metric is defined by the squared Frobenius norms of attitude matrix differences <span class="citation">[<a href="#ref-markley_averaging_2007">2</a>]</span>.</p>
 <p><span class="math display">\[\| A(\mathbf{q}_1) - A(\mathbf{q}_2) \|^2_F = 6 - 2 Tr [ A(\mathbf{q}_1)A^t(\mathbf{q}_2) ]\]</span></p>
 <p>where</p>
 <p><span class="math display">\[A(\mathbf{q}) = (q.r^2 - \| \boldsymbol{\varrho} \|^2) I_{3 \times 3} + 2\boldsymbol{\varrho} \boldsymbol{\varrho}^T - 2q.r[\boldsymbol{\varrho} \times]\]</span></p>
@@ -215,9 +225,26 @@ q.k &amp; 0 &amp; -q.i \\
 <p>The idea of the filter itself is to combine the precise “short-term” measurements of the gyroscope subject to drift with the “long-term” measurements of the accelerometer.</p>
 <h3 id="state-1">State</h3>
 <p>This filter is very simple and it is only needed to store as a state the last estimated attitude along with its timestamp (to calculate <span class="math inline">\(\Delta t\)</span>). <span class="math display">\[\mathbf{x}_t = \mathbf{q}_t\]</span> <span class="math display">\[\hat{\mathbf{q}}_{t+1} = \alpha (\hat{\mathbf{q}}_t + \Delta t \mathbf{\omega}_t) + (1 - \alpha) {\mathbf{q_A}}_{t+1}\]</span> <span class="math inline">\(\alpha \in [0, 1]\)</span>. Usually, <span class="math inline">\(\alpha\)</span> is set to a high-value like <span class="math inline">\(0.98\)</span>. It is very intuitive to see why this should approximately “work”, the data from the accelerometer continuously correct the drift from the gyroscope.</p>
+<pre class="graph"><code>┌──────┐ ┌───────────────────────────────────────────┐                         
+│      │ │                                           │                         
+│      │&lt;┘┌───────────────────────────┐  ┌────────┐  │                         
+│      ├──┘                           │  │        │  │ ┌─────────┐             
+│Buffer│     ┌─────┐    ┌───────┐     └─&gt;│        │  │ │         │             
+│      │     │     │    │       │        │Rotation│  │ │         │  ┌─────────┐
+│      ├────&gt;│     ├───&gt;│BR2Quat├───────&gt;│        │  └─┤         │  │         │
+│      │     │Integ│    │       │        │        ├───&gt;│Combining├─&gt;│Block out│
+└──────┘  ┌─&gt;│     │    └───────┘        └────────┘    │         │  │         │
+          │  │     │                                ┌─&gt;│         │  └─────────┘
+┌───────┐ │  └─────┘┌────────────────┐   ┌────────┐ │  │         │             
+│       │ │         │                │   │        │ │  └─────────┘             
+│       ├─┘         │┌─────────────┐ └──&gt;│        │ │                          
+│Map IMU├───────────┘│             │     │ACC2Quat├─┘                          
+│       │            │Map CI Thrust├────&gt;│        │                            
+│       │            │             │     │        │                            
+└───────┘            └─────────────┘     └────────┘                            </code></pre>
 <div class="figure">
-<img src="ocf.png" alt="CF Graph generated by scala-flow" />
-<p class="caption">CF Graph generated by scala-flow</p>
+<img src="empty.jpg" alt="Complementary Filter graph structure" />
+<p class="caption">Complementary Filter graph structure</p>
 </div>
 <p>Figure 9 is the plot of the distance from the true quaternion after 15s of an arbitrary trajectory when <span class="math inline">\(\alpha = 1.0\)</span> meaning that the accelerometer does not correct the drift.</p>
 <div class="figure">
@@ -229,19 +256,34 @@ q.k &amp; 0 &amp; -q.i \\
 <img src="cf098.png" alt="CF with alpha = 0.98" />
 <p class="caption">CF with alpha = 0.98</p>
 </div>
+<p>We can observe here the long-term importance of being able to correct the drift, even if ever so slightly at each timestep.</p>
 <h2 id="asynchronous-augmented-complementary-filter">Asynchronous Augmented Complementary Filter</h2>
-<p>As explained previously, in this highly-dynamic setting, combining the gyroscope and the accelerometer to retrieve the attitude is not satisfactory. However, we can reuse the intuition from the complementary filter, which is to combine precise but drifting short-term measurement to other measurements that do not suffer from drift. This enable a simple and computionally inexpensive novel filter that we will be able to use later as a baseline. In this case, the short-term measurements are the acceleration and angular velocity from the IMU, and the non drifting measurements come from the Vicon.</p>
+<p>As explained previously, in this highly-dynamic setting, combining the gyroscope and the accelerometer to retrieve the attitude is not satisfactory. However, we can reuse the intuition from the complementary filter, which is to combine precise but drifting short-term measurements to other measurements that do not suffer from drift. This enable a simple and computionally inexpensive novel filter that we will be able to use later as a baseline. In this case, the short-term measurements are the acceleration and angular velocity from the IMU, and the non drifting measurements come from the Vicon.</p>
 <p>We will also add the property that the data from the sensors are asynchronous. This is a consequence of the sensors having different sampling rate.</p>
 <ul>
 <li><p><strong>IMU</strong> update <span class="math display">\[\mathbf{v}_t = \mathbf{v}_{t-1} + \Delta t_v \mathbf{a_A}_t\]</span> <span class="math display">\[\boldsymbol{\omega}_t = \boldsymbol{\mathbf{\omega_G}}_t\]</span> <span class="math display">\[\mathbf{p}_t = \mathbf{p}_{t-1} + \Delta t \mathbf{v}_{t-1}\]</span> <span class="math display">\[\mathbf{q}_t = \mathbf{q}_{t-1}R2Q(\Delta t \boldsymbol{\omega}_{t-1})\]</span></p></li>
 <li><p><strong>Vicon</strong> update <span class="math display">\[\mathbf{p}_t = \alpha \mathbf{p_V} + (1 - \alpha) (\mathbf{p}_{t-1} + \Delta t \mathbf{v}_{t-1})\]</span> <span class="math display">\[\mathbf{q}_t = \alpha \mathbf{q_V} + (1 - \alpha) (\mathbf{q}_{t-1}R2Q(\Delta t \boldsymbol{\omega}_{t-1}))\]</span></p></li>
 </ul>
 <h3 id="state-2">State</h3>
-<p>The state has to be more complex because the filter estimate now both the position and the attitude. Furthermore, because of asynchronousity, we have to store the last angular velocity, the last linear velocity, and the last time the linear velocity has been updated (to retrieve <span class="math inline">\(\Delta t_v = t - t_a\)</span> where <span class="math inline">\(t_a\)</span> is the last time we had an update from the accelerometer).</p>
+<p>The state has to be more complex because the filter now estimates both the position and the attitude. Furthermore, because of asynchronousity, we have to store the last angular velocity, the last linear velocity, and the last time the linear velocity has been updated (to retrieve <span class="math inline">\(\Delta t_v = t - t_a\)</span> where <span class="math inline">\(t_a\)</span> is the last time we had an update from the accelerometer).</p>
 <p><span class="math display">\[\mathbf{x}_t = (\mathbf{p}_t, \mathbf{q}_t, \boldsymbol{\omega}_t, \mathbf{a}_t, t_a)\]</span></p>
+<p>The structure of this filter and all of the filters presented thereafter is as follow:</p>
+<pre class="graph"><code> ┌───────┐                          ┌──────┐   ┌─────┐  ┌─────────┐
+ │       │                          │      │   │     │  │         │
+ │Map IMU├─┐   ┌─────┐  ┌───────┐   │      ├──&gt;│P &amp; Q├─&gt;│Block out│
+ │       │ │   │     │  │       ├──&gt;│Update│   │     │  │         │
+ └───────┘ └──&gt;│     │  │       │   │      ├─┐ └─────┘  └─────────┘
+               │Merge├─&gt;│ZipLast│   │      │ │                     
+┌─────────┐ ┌─&gt;│     │  │       │&lt;┐ └──────┘ │           ┌──────┐  
+│         │ │  │     │  │       │ │          │           │      │  
+│Map Vicon├─┘  └─────┘  └───────┘ │          │           │      │  
+│         │                       │          └──────────&gt;│Buffer│  
+└─────────┘                       └──────────────────────┤      │  
+                                                         │      │  
+                                                         └──────┘  </code></pre>
 <div class="figure">
-<img src="acf.png" alt="AACF Graph generated by scala-flow" />
-<p class="caption">AACF Graph generated by scala-flow</p>
+<img src="empty.jpg" alt="A graph of the filters structure in scala-flow" />
+<p class="caption">A graph of the filters structure in scala-flow</p>
 </div>
 <h2 id="kalman-filter">Kalman Filter</h2>
 <h3 id="bayesian-inference">Bayesian inference</h3>
@@ -391,7 +433,8 @@ w_norm <span class="op">=</span> sqrt(w[<span class="dv">0</span>]<span class="o
 ang <span class="op">=</span> w_norm<span class="op">/</span><span class="dv">2</span>
 w_normalized <span class="op">=</span> w<span class="op">/</span>w_norm
 sin2 <span class="op">=</span> sin(ang)
-qd <span class="op">=</span> cos(ang) <span class="op">+</span> w_normalized[<span class="dv">0</span>]<span class="op">*</span>sin2<span class="op">*</span>i <span class="op">+</span> w_normalized[<span class="dv">1</span>]<span class="op">*</span>sin2<span class="op">*</span>j <span class="op">+</span> w_normalized[<span class="dv">2</span>]<span class="op">*</span>sin2<span class="op">*</span>k
+qd <span class="op">=</span> cos(ang) <span class="op">+</span> w_normalized[<span class="dv">0</span>]<span class="op">*</span>sin2<span class="op">*</span>i <span class="op">+</span> w_normalized[<span class="dv">1</span>]<span class="op">*</span>sin2<span class="op">*</span>j 
+	<span class="op">+</span> w_normalized[<span class="dv">2</span>]<span class="op">*</span>sin2<span class="op">*</span>k
 
 nq <span class="op">=</span> q<span class="op">*</span>qd
 
@@ -412,7 +455,7 @@ v <span class="op">=</span> vector(nq.coefficient_tuple())
 </ul>
 <p>The Unscented Kalman Filter (UKF) does not suffer from the two first flaws, but it is more computationally expensive as it requires a cholesky factorisation that grows exponentially in complexity with the number of dimensions.</p>
 <p>Indeed, the UKF applies an unscented transformation to sigma points of the current approximated distribution. The statistics of the new approximated gaussian are found through this unscented transform. The EKF linearizes the transformation, the UKF approximates the resulting gaussian after the transformation. Hence, the UKF can take into account the effects of the transformation away from the mean which might be drastically different.</p>
-<p>The implementation of an UKF still suffer greatly from quaternion not belonging to a vector space. The approach taken by <span class="citation">[@edgar_quaternion-based_nodate]</span> is to use the error quaternion defined by <span class="math inline">\(\mathbf{e}_i = \mathbf{q}_i\bar{\mathbf{q}}\)</span>. This approach has the benefit that similar quaternion differences result in similar error. But apart from that, it does not have any profound justification. We must compute a sound average weighted quaternion of all sigma points. An algorithm is described in the following section.</p>
+<p>The implementation of an UKF still suffer greatly from quaternion not belonging to a vector space. The approach taken by <span class="citation">[<a href="#ref-edgar_quaternion-based_nodate">3</a>]</span> is to use the error quaternion defined by <span class="math inline">\(\mathbf{e}_i = \mathbf{q}_i\bar{\mathbf{q}}\)</span>. This approach has the benefit that similar quaternion differences result in similar error. But apart from that, it does not have any profound justification. We must compute a sound average weighted quaternion of all sigma points. An algorithm is described in the following section.</p>
 <h3 id="average-quaternion">Average quaternion</h3>
 <p>Unfortunately, the average of quaternions components <span class="math inline">\(\frac{1}{N} \sum q_i\)</span> or <em>barycentric</em> mean is unsound: Indeed, attitude do not belong to a vector space but a homogenous Riemannian manifold (the four dimensional unit sphere). To convince yourself of the unsoundness of the <em>barycentric</em> mean, see that the addition and barycentric mean of two unit quaternion is not necessarily an unit quaternion (<span class="math inline">\((1, 0, 0, 0)\)</span> and <span class="math inline">\((-1, 0, 0, 0)\)</span> for instance. Furthermore, angle being periodic, the <em>barycentric</em> mean of a quaternion with angle <span class="math inline">\(-178^\circ\)</span> and another with same body-axis and angle <span class="math inline">\(180^\circ\)</span> gives <span class="math inline">\(1^\circ\)</span> instead of the expected <span class="math inline">\(-179^\circ\)</span>.</p>
 <p>To calculate the average quaternion, we use an algorithm which minimize a metric that correspond to the weighted attitude difference to the average, namely the weighted sum of the squared Frobenius norms of attitude matrix differences. <span class="math display">\[\bar{\mathbf{q}} = arg \min_{q \in \mathbb{S}^3} \sum w_i \| A(\mathbf{q}) - A(\mathbf{q}_i) \|^2_F\]</span></p>
@@ -421,6 +464,7 @@ v <span class="op">=</span> vector(nq.coefficient_tuple())
 <h3 id="intuition">Intuition</h3>
 <p>The intuition of keeping track of multiple representative of the distribution is exactly the approach taken by the particle filter. The particle filter has the advantage that the distribution is never transformed back to a gaussian so there is less assumption made about the noise and the transformation. It is only required to be able to calculate the expectation from a weighted set of particles.</p>
 <h2 id="particle-filter">Particle Filter</h2>
+<p>Particle filters are computationaly expensive. This is the reason why their usage is not very popular currently for low-powered embedded systems like drones. However, they are used in Avionics for planes since the computational resources are less scarce and the precision crucial. Accelerating hardware could widen the usage of particle filters to embedded systems.</p>
 <p>Particle filters are sequential monte carlo methods. Like all monte carlo method, they rely on repeated sampling for estimation of a distribution.</p>
 <div class="figure">
 <img src="mc.gif" alt="Monte carlo estimation of pi" />
@@ -429,7 +473,7 @@ v <span class="op">=</span> vector(nq.coefficient_tuple())
 <p>The particle filter itself a weighted particle representation of the posterior:</p>
 <p><span class="math display">\[p(\mathbf{x}) = \sum w^{(i)}\delta(\mathbf{x} - \mathbf{x}^{(i)})\]</span> where <span class="math inline">\(\delta\)</span> is the dirac delta function. The dirac delta function is zero everywhere except at zero, with an integral of one over the entire real line. It represents here the ideal probability density of a particle.</p>
 <h3 id="importance-sampling">Importance sampling</h3>
-<p>The weights here come from importance sampling. It represents the fact that each particle does not represent equally the distribution. Importance sampling enables to use sampling from another distribution to estimate properties from the target distribution of interest. In most cases, it can be used to focus sampling on the region of interest. But in our case, it enables us to reweight particles based on their likelihood from the measurements.</p>
+<p>The weights are computed through importance sampling. With importance sampling, each particle does not represent equally the distribution. Importance sampling enables to use sampling from another distribution to estimate properties from the target distribution of interest. In most cases, it can be used to focus sampling on a specific region of the distribution. In our case, by choosing the right importance distribution (the dynamics of the model as we will see later), we can reweight particles based on the likelihood from the measurements (<span class="math inline">\(p(\mathbf{y} | \mathbf{x})\)</span>.</p>
 <p>Importance sampling is based on the identity:</p>
 <p><span class="math display">\[
 \begin{aligned}
@@ -437,39 +481,75 @@ v <span class="op">=</span> vector(nq.coefficient_tuple())
 &amp;= \int \left [\mathbf{g}(\mathbf{x})\frac{p(\mathbf{x}|\mathbf{y}_{1:T})}{\mathbf{\pi}(\mathbf{x}|\mathbf{y}_{1:T})} \right ] \mathbf{\pi}(\mathbf{x}|\mathbf{y}_{1:T}) d\mathbf{x} 
 \end{aligned}
 \]</span></p>
-<h3 id="sequential-importnce-samplng">Sequential Importnce Samplng</h3>
-<p>** TODO **</p>
-<p>Particle filters are very computionally expensive and that is why their usage is not very popular currently for low-powered embedded systems like drones (But they are used in Avionics). Using accelerated hardware is one way to enable them on drones.</p>
+<p>Thus, it can be approximated as <span class="math display">\[
+\begin{aligned}
+\mathbb{E}[\mathbf{g}(\mathbf{x}) | \mathbf{y}_{1:T}] &amp;\approx \frac{1}{N} \sum_i^N \frac{p(\mathbf{x}^{(i)}|\mathbf{y}_{1:T})}{\mathbf{\pi}(\mathbf{x}^{(i)}|\mathbf{y}_{1:T})}\mathbf{g}(\mathbf{x}^{(i)})
+&amp;\approx \sum^N_i w^{(i)} \mathbf{g}(\mathbf{x}^{(i)})
+\end{aligned}
+\]</span></p>
+<p>where <span class="math inline">\(N\)</span> samples of <span class="math inline">\(\mathbf{x}\)</span> are drawn from the importance distribution <span class="math inline">\(\mathbf{\pi}(\mathbf{x}|\mathbf{y}_{1:T})\)</span></p>
+<p>And the weights are defined as:</p>
+<p><span class="math display">\[w^{(i)} = \frac{1}{N} \frac{p(\mathbf{x}^{(i)}|\mathbf{y}_{1:T})}{\mathbf{\pi}(\mathbf{x}^{(i)}|\mathbf{y}_{1:T})}\]</span></p>
+<p>Computing <span class="math inline">\(p(\mathbf{x}^{(i)}|\mathbf{y}_{1:T}\)</span> is hard (if not impossible), but fortunately we can compute the unnormalized weight instead:</p>
+<p><span class="math display">\[w^{(i)}* = p(\mathbf{y}_{1:T}|\mathbf{x}^{(i)})p(\mathbf{x}^{(i))}{\mathbf{\pi}(\mathbf{x}^{(i)}|\mathbf{y}_{1:T})}\]</span></p>
+<p>and normalizing it afterwards</p>
+<p><span class="math display">\[\sum^N_i w^{(i)*} = 1 \Rightarrow w^{(i)} = \frac{w^{*(i)}}{\sum^N_j w^{*(i)}}\]</span></p>
+<h3 id="sequential-importance-sampling">Sequential Importance Sampling</h3>
+<p>The last equation becomes more and more computationally expensive as T grows larger (the joint variable of the time series grows larger). Fortunately, Sequential Importance Sampling is an alternative recurisve algorithm that has a fixed amount of computation at each iteration:</p>
+<p><span class="math display">\[
+\begin{aligned}
+p(\mathbf{x}_{0:k} | \mathbf{y}_{0:k}) &amp;\propto p(\mathbf{y}_k | \mathbf{x}_{0:k}, \mathbf{y}_{1:k-1})p(\mathbf{x}_k | \mathbf{y}_{1:k-1}) \\
+&amp;\propto p(\mathbf{y}_k | \mathbf{x}_{k})p(\mathbf{x}_k | \mathbf{x}_{0:k-1}, \mathbf{y}_{1:k-1})p(\mathbf{x}_{0:k-1} | \mathbf{y}_{1:k-1}) \\
+&amp;\propto p(\mathbf{y}_k | \mathbf{x}_{k})p(\mathbf{x}_k | \mathbf{x}_{k-1})p(\mathbf{x}_{0:k-1} | \mathbf{y}_{1:k-1}) 
+\end{aligned}
+\]</span></p>
+<p>The importance distribution is such that <span class="math inline">\(\mathbf{x}^i_{0:k} \sim \pi(\mathbf{x}_{0:k} | \mathbf{y}_{1:k})\)</span> with the according importance weight: <span class="math display">\[w^{(i)}_k \propto \frac{p(\mathbf{y}_k | \mathbf{x}^{(i)}_{k})p(\mathbf{x}^{(i)}_k | \mathbf{x}^{(i)}_{k-1})p(\mathbf{x}^{(i)}_{0:k-1} | \mathbf{y}_{1:k-1})}{\pi(\mathbf{x}_{0:k} | \mathbf{y}_{1:k})}\]</span></p>
+<p>We can express the importance distribution recursively: <span class="math display">\[\pi(\mathbf{x}_{0:k} | \mathbf{y}_{1:k}) = \pi(\mathbf{x}_{k} |\mathbf{x}_{0:k-1},  \mathbf{y}_{1:k})\pi(\mathbf{x}_{0:k-1} | \mathbf{y}_{1:k-1})\]</span></p>
+<p>The recursive structure propagates to the weight itself:</p>
+<p><span class="math display">\[
+\begin{aligned}
+w^{(i)}_k &amp;\propto \frac{p(\mathbf{y}_k | \mathbf{x}^{(i)}_{k})p(\mathbf{x}^{(i)}_k | \mathbf{x}^{(i)}_{k-1})}{\pi(\mathbf{x}_{k} |\mathbf{x}_{0:k-1},  \mathbf{y}_{1:k})} \frac{p(\mathbf{x}^{(i)}_{0:k-1} | \mathbf{y}_{1:k-1})}{\pi(\mathbf{x}_{0:k-1} | \mathbf{y}_{1:k-1})} \\
+&amp;\propto \frac{p(\mathbf{y}_k | \mathbf{x}^{(i)}_{k})p(\mathbf{x}^{(i)}_k | \mathbf{x}^{(i)}_{k-1})}{\pi(\mathbf{x}_{k} |\mathbf{x}_{0:k-1},  \mathbf{y}_{1:k})} w^{(i)}_{k-1}
+\end{aligned}
+\]</span></p>
+<p>We can further simplify the formuly by choosing the importance distribution to be the dynamics of the model: <span class="math display">\[\pi(\mathbf{x}_{k} |\mathbf{x}_{0:k-1},  \mathbf{y}_{1:k}) = p(\mathbf{x}^{(i)}_k | \mathbf{x}^{(i)}_{k-1})\]</span> <span class="math display">\[ w^{*(i)}_k = p(\mathbf{y}_k | \mathbf{x}^{(i)}_{k}) w^{(i)}_{k-1}\]</span></p>
+<p>As previously, it is then only needed to normalize the resulting weight.</p>
+<p><span class="math display">\[\sum^N_i w^{(i)*} = 1 \Rightarrow w^{(i)} = \frac{w^{*(i)}}{\sum^N_j w^{*(i)}}\]</span></p>
 <h3 id="resampling">Resampling</h3>
-<p>When the number of effective particles is too low (<span class="math inline">\(N/10\)</span>), we apply systematic resampling. The idea behind resampling is simple. The distribution is represented by a number of particles with different weights. As time goes, the repartition of weights degenerate. A large subset of particles ends up having negligible weight which make them irrelevant. In the most extreme case, one particle represents the whole distribution. To avoid that degeneration, when the weights are too unbalanced, we resample from the weights distribution: pick N times among the particle and assign them a weight of <span class="math inline">\(1/N\)</span>, each pick has odd <span class="math inline">\(w_i\)</span> to pick the particle <span class="math inline">\(p_i\)</span>. Thus, some particles with large weights are splitted up into smaller clone particle and others with small weight are never picked. This process is similar to evolution, at each generation, the most promising branch survive and replicate while the less promising die off.</p>
-<p>A popular method for resampling is systematic sampling as described by <span class="citation">[@doucet_tutorial_2009]</span>:</p>
+<p>When the number of effective particles is too low (less than <span class="math inline">\(1/10\)</span> of N having weight <span class="math inline">\(1/10\)</span>), we apply systematic resampling. The idea behind resampling is simple. The distribution is represented by a number of particles with different weights. As time goes, the repartition of weights degenerate. A large subset of particles ends up having negligible weight which make them irrelevant. In the most extreme case, one particle represents the whole distribution.</p>
+<p>To avoid that degeneration, when the weights are too unbalanced, we resample from the weights distribution: pick N times among the particle and assign them a weight of <span class="math inline">\(1/N\)</span>, each pick has odd <span class="math inline">\(w_i\)</span> to pick the particle <span class="math inline">\(p_i\)</span>. Thus, some particles with large weights are splitted up into smaller clone particle and others with small weight are never picked. This process is similar to evolution, at each generation, the most promising branch survive and replicate while the less promising die off.</p>
+<p>A popular method for resampling is systematic sampling as described by <span class="citation">[<a href="#ref-doucet_tutorial_2009">4</a>]</span>:</p>
 <p>Sample <span class="math inline">\(U_1 \sim \mathcal{U} [0, \frac{1}{N} ]\)</span> and define <span class="math inline">\(U_i = U_1 + \frac{i-1 }{N}\)</span> for <span class="math inline">\(i = 2, \ldots, N\)</span></p>
 <h2 id="rao-blackwellized-particle-filter">Rao-Blackwellized Particle Filter</h2>
 <h3 id="introduction-1">Introduction</h3>
-<p>Compared to a plain PF, RPBF leverage the linearity of some components of the state by assuming our model gaussian conditionned on a latent variable: Given the attitude <span class="math inline">\(q_t\)</span>, our model is linear. This is where RPBF shines: We use particle filtering to estimate our latent variable, the attitude, and we use the optimal kalman filter to estimate the state variable.</p>
-<p>This main inspiration from this approach is <span class="citation">[@vernaza_rao-blackwellized_2006]</span>. However, it differs by:</p>
+<p>Compared to a plain particle filter, RPBF leverage the linearity of some components of the state by assuming our model gaussian conditionned on a latent variable: Given the attitude <span class="math inline">\(q_t\)</span>, our model is linear. This is where RPBF shines: We use particle filtering to estimate our latent variable, the attitude, and we use the optimal kalman filter to estimate the state variable. If a plain particle can be seen as the simple average of particle states, then the RPBF can be seen as the “average” of many gaussians.</p>
+<p>Indeed, the benefit of particle filters is that they assume no particular form for the posterior distribution and transformation of the state. But as the state widens in dimensions, the number of needed particles to keep a good estimation grows exponentially. This is a consequence of [“the curse of dimensionality”}(https://en.wikipedia.org/wiki/Curse_of_dimensionality) and is quite intuitive: for each dimension, we must now consider all additional combination of state. In our context, we have 10 dimensions (<span class="math inline">\(\mathbf{v}\)</span>,<span class="math inline">\(\mathbf{p}\)</span>,<span class="math inline">\(\mathbf{q}\)</span>) and it would be very computationally expensive to simulate a too large number of particles.</p>
+<p>Kalman filters on the other hand do not suffer from such exponential growth, but as explained previously, they are inadequate for non-linear transformation. RPBF is the best of both world by combining a particle filter for the non-linear components of the state (the attitude) as a latent variable, and kalman filters for the linear components of the state (velocity and position). Each individual particle has now both a linear state <span class="math inline">\(\mathbf{x}\)</span> and a latent variable <span class="math inline">\(\boldsymbol{\theta}\)</span>. For ease of notation, the linear state as designated by <span class="math inline">\(x_t\)</span> will be referred to as the state even though the actual state we are concerned with should include the latent variable.</p>
+<h3 id="related-work">Related work</h3>
+<p>Related work of this approach is <span class="citation">[<a href="#ref-vernaza_rao-blackwellized_2006">5</a>]</span>. However, it differs by:</p>
 <ul>
-<li>adapt the filter to drones by taking into account that the system is too dynamic for assuming that the accelerometer simply output the gravity vector. This is solved by augmenting the state with the acceleration as shown later.</li>
-<li>not use measurements of the IMU as control inputs (this is usually used for wheeled vehicles because of the drift from the wheels) but have both control inputs and measurements.</li>
+<li>adapting the filter to drones by taking into account that the system is too dynamic for assuming that the accelerometer simply output the gravity vector. This is solved by augmenting the state with the acceleration as shown later.</li>
+<li>not using measurements of the IMU as control inputs (this is usually used for wheeled vehicles because of the drift from the wheels) but have both control inputs and measurements.</li>
 <li>add an attitude sensor.</li>
 </ul>
+<h3 id="latent-variable">Latent variable</h3>
 <p>We introduce the latent variable <span class="math inline">\(\boldsymbol{\theta}\)</span></p>
 <p>The latent variable <span class="math inline">\(\boldsymbol{\theta}\)</span> has for sole component the attitude: <span class="math display">\[\boldsymbol{\theta} = (\mathbf{q})\]</span></p>
 <p><span class="math inline">\(q_t\)</span> is estimated from the product of the attitude of all particles <span class="math inline">\(\mathbf{\theta^{(i)}} = \mathbf{q}^{(i)}_t\)</span> as the “average” quaternion <span class="math inline">\(\mathbf{q}_t = avgQuat(\mathbf{q}^n_t)\)</span>. <span class="math inline">\(x^n\)</span> designates the product of all n arbitrary particle.</p>
-<p>The weight definition is:</p>
+<p>As stated in the previous section, The weight definition is:</p>
 <p><span class="math display">\[w^{(i)}_t = \frac{p(\boldsymbol{\theta}^{(i)}_{0:t} | \mathbf{y}_{1:t})}{\pi(\boldsymbol{\theta}^{(i)}_{0:t} | \mathbf{y}_{1:t})}\]</span></p>
-<p>From the definition, it is proovable that:</p>
+<p>From the definition and the previous section, it is provable that:</p>
 <p><span class="math display">\[w^{(i)}_t \propto \frac{p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1})p(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{t-1})}{\pi(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{1:t-1}, \mathbf{y}_{1:t})} w^{(i)}_{t-1}\]</span></p>
-<p>We choose the dynamic of the model as the importance distribution:</p>
+<p>We choose the dynamics of the model as the importance distribution:</p>
 <p><span class="math display">\[\pi(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{1:t-1}, \mathbf{y}_{1:t}) = p(\boldsymbol{\theta}^{(i)}_t | \boldsymbol{\theta}^{(i)}_{t-1}) \]</span></p>
 <p>Hence,</p>
-<p><span class="math display">\[w^{(i)}_t \propto p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\]</span></p>
-<p>We then sum all <span class="math inline">\(w^{(i)}_t\)</span> to find the normalization constant and retrieve the actual <span class="math inline">\(w^{(i)}_t\)</span></p>
+<p><span class="math display">\[w^{*(i)}_t \propto p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) w^{(i)}_{t-1}\]</span></p>
+<p>We then sum all <span class="math inline">\(w^{*(i)}_t\)</span> to find the normalization constant and retrieve the actual <span class="math inline">\(w^{(i)}_t\)</span></p>
 <h3 id="state-4">State</h3>
 <p><span class="math display">\[\mathbf{x}_t = (\mathbf{v}_t, \mathbf{p}_t)^T\]</span></p>
 <p>Initial state <span class="math inline">\(\mathbf{x}_0 = (\mathbf{0}, \mathbf{0}, \mathbf{0})\)</span></p>
 <p>Initial covariance matrix <span class="math inline">\(\mathbf{\Sigma}_{6 \times 6} = \epsilon \mathbf{I}_{6 \times 6}\)</span></p>
-<h3 id="latent-variable">Latent variable</h3>
+<h3 id="latent-variable-1">Latent variable</h3>
 <p><span class="math display">\[\mathbf{q}^{(i)}_{t+1} = \mathbf{q}^{(i)}_t*R2Q({\Delta t} (\mathbf{\boldsymbol{\omega}_G}_t+\mathbf{\boldsymbol{\omega}_G}^\epsilon_t))\]</span></p>
 <p><span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}^\epsilon_t\)</span> represents the error from the control input and is sampled from <span class="math inline">\(\mathbf{\boldsymbol{\omega}_G}^\epsilon_t \sim \mathcal{N}(\mathbf{0}, \mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}_t })\)</span></p>
 <p>Initial attitude <span class="math inline">\(\mathbf{q_0}\)</span> is sampled such that the drone pitch and roll are none (parralel to the ground) but the yaw is unknown and uniformly distributed.</p>
@@ -556,12 +636,221 @@ v <span class="op">=</span> vector(nq.coefficient_tuple())
 <p><span class="math display">\[p(\mathbf{y}_t | \boldsymbol{\theta}^{(i)}_{0:t-1}, \mathbf{y}_{1:t-1}) = \mathcal{N}(\mathbf{p}_{t1} + \Delta p; \mathbf{p}_{t2}; \mathbf{R}_{\mathbf{dp_O}_t})\mathcal{N}(\Delta \mathbf{q}; \mathbf{q}_{t1}^{-1}\mathbf{q}_{t2}; \mathbf{R}_{\mathbf{dq_O}_t})\]</span></p>
 <p>where <span class="math inline">\(t2 = t1 + \Delta t\)</span>, <span class="math inline">\(\mathbf{p}_{t2}\)</span> is the latest kalman prediction and <span class="math inline">\(\mathbf{q}_{t2}\)</span> is the latest latent variable through sampling of the attitude updates.</p>
 <h2 id="results">Results</h2>
-<p><strong>TODO</strong></p>
-<p>Parameters used</p>
-<p>Table of RMSE</p>
-<p>Graph that shows the tracking through time</p>
+<p>We present a comparison of the 4 filters in 6 settings. The metrics is the RMSE of the l2-norm of the position and of the Froebius norm of the attitude as described previously. All of the filters share a sampling frequency of <strong>200Hz</strong> for the IMU and <strong>4Hz</strong> for the Vicon. The RBPF is set to <strong>1000</strong> particles</p>
+<p>In all scenarios, the covariance matrices of the sensors measurement are diagonal:</p>
+<ul>
+<li><span class="math inline">\(\mathbf{R}_{\mathbf{a_A}} = \sigma^2_{\mathbf{\mathbf{a_A}}} \mathbf{I}_{3 \times 3}\)</span></li>
+<li><span class="math inline">\(\mathbf{R}_{\mathbf{\boldsymbol{\omega}_G}} = \sigma^2_{\mathbf{\boldsymbol{\omega}_G}} \mathbf{I}_{3 \times 3}\)</span></li>
+<li><span class="math inline">\(\mathbf{R}_{\mathbf{p_V}} = \sigma^2_{\mathbf{p_V}} \mathbf{I}_{3 \times 3}\)</span></li>
+<li><span class="math inline">\(\mathbf{R}_{\mathbf{q_V}} = \sigma^2_{\mathbf{q_V}} \mathbf{I}_{3 \times 3}\)</span></li>
+</ul>
+<p>with the following settings:</p>
+<ul>
+<li><strong>Vicon</strong>:
+<ul>
+<li>High-precision <span class="math inline">\(\sigma^2_{\mathbf{p_V}} = \sigma^2_{\mathbf{q_V}} = 0.01\)</span></li>
+<li>Low-precision <span class="math inline">\(\sigma^2_{\mathbf{p_V}} = \sigma^2_{\mathbf{q_V}} = 0.1\)</span><br />
+</li>
+</ul></li>
+<li><strong>Accelerometer</strong>:
+<ul>
+<li>High-precision: <span class="math inline">\(\sigma^2_{\mathbf{\mathbf{a_A}}} = 0.1\)</span></li>
+<li>Low-precision: <span class="math inline">\(\sigma^2_{\mathbf{\mathbf{a_A}}} = 1.0\)</span></li>
+</ul></li>
+<li><strong>Gyroscope</strong>:
+<ul>
+<li>High-precision: <span class="math inline">\(\sigma^2_{\mathbf{\boldsymbol{\omega}_G}} = 0.1\)</span></li>
+<li>Low-precision: <span class="math inline">\(\sigma^2_{\mathbf{\boldsymbol{\omega}_G}} = 1.0\)</span></li>
+</ul></li>
+</ul>
+<table style="width:88%;">
+<caption>position RMSE over 5 random trajectories of 20 seconds</caption>
+<colgroup>
+<col width="7%" />
+<col width="8%" />
+<col width="8%" />
+<col width="17%" />
+<col width="12%" />
+<col width="13%" />
+<col width="18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Vicon preci sion</th>
+<th>Accel. preci.</th>
+<th>Gyros. preci.</th>
+<th>Augmented Complementary Filter</th>
+<th>Extended Kalman Filter</th>
+<th>Unscented Kalman Filter</th>
+<th>Rao -Blackwellized Particle Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>6.88e-02</p></td>
+<td><p>3.26e-02</p></td>
+<td><p>3.45e-02</p></td>
+<td><p><strong>1.45e-02</strong></p></td>
+</tr>
+<tr class="even">
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>Low</p></td>
+<td><p>6.10e-02</p></td>
+<td><p>1.13e-01</p></td>
+<td><p>9.20e-02</p></td>
+<td><p><strong>2.17e-02</strong></p></td>
+</tr>
+<tr class="odd">
+<td><p>High</p></td>
+<td><p>Low</p></td>
+<td><p>Low</p></td>
+<td><p>4.05e-02</p></td>
+<td><p>5.24e-02</p></td>
+<td><p>3.29e-02</p></td>
+<td><p><strong>1.61e-02</strong></p></td>
+</tr>
+<tr class="even">
+<td><p>Low</p></td>
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>5.05e-01</p></td>
+<td><p>5.05e-01</p></td>
+<td><p>2.90e-01</p></td>
+<td><p><strong>1.27e-01</strong></p></td>
+</tr>
+<tr class="odd">
+<td><p>Low</p></td>
+<td><p>High</p></td>
+<td><p>Low</p></td>
+<td><p>6.16e-01</p></td>
+<td><p>1.09e+00</p></td>
+<td><p>9.30e-01</p></td>
+<td><p><strong>1.22e-01</strong></p></td>
+</tr>
+<tr class="even">
+<td><p>Low</p></td>
+<td><p>Low</p></td>
+<td><p>Low</p></td>
+<td><p>3.57e-01</p></td>
+<td><p>2.66e-01</p></td>
+<td><p>3.27e-01</p></td>
+<td><p><strong>1.19e-01</strong></p></td>
+</tr>
+</tbody>
+</table>
+<table style="width:88%;">
+<caption>attitude RMSE over 5 random trajectories of 20 seconds</caption>
+<colgroup>
+<col width="7%" />
+<col width="8%" />
+<col width="8%" />
+<col width="17%" />
+<col width="12%" />
+<col width="13%" />
+<col width="18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Vicon preci sion</th>
+<th>Accel. preci.</th>
+<th>Gyros. preci.</th>
+<th>Augmented Complementary Filter</th>
+<th>Extended Kalman Filter</th>
+<th>Unscented Kalman Filter</th>
+<th>Rao -Blackwellized Particle Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>7.36e-03</p></td>
+<td><p>5.86e-03</p></td>
+<td><p>5.17e-03</p></td>
+<td><p><strong>1.01e-04</strong></p></td>
+</tr>
+<tr class="even">
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>Low</p></td>
+<td><p>6.37e-03</p></td>
+<td><p>1.37e-02</p></td>
+<td><p>9.17e-03</p></td>
+<td><p><strong>6.50e-04</strong></p></td>
+</tr>
+<tr class="odd">
+<td><p>High</p></td>
+<td><p>Low</p></td>
+<td><p>Low</p></td>
+<td><p>6.25e-03</p></td>
+<td><p>1.69e-02</p></td>
+<td><p>1.02e-02</p></td>
+<td><p><strong>8.34e-04</strong></p></td>
+</tr>
+<tr class="even">
+<td><p>Low</p></td>
+<td><p>High</p></td>
+<td><p>High</p></td>
+<td><p>5.30e-01</p></td>
+<td><p>3.28e-01</p></td>
+<td><p>3.26e-01</p></td>
+<td><p><strong>5.82e-03</strong></p></td>
+</tr>
+<tr class="odd">
+<td><p>Low</p></td>
+<td><p>High</p></td>
+<td><p>Low</p></td>
+<td><p>5.18e-01</p></td>
+<td><p>2.99e-01</p></td>
+<td><p>2.95e-01</p></td>
+<td><p><strong>5.78e-03</strong></p></td>
+</tr>
+<tr class="even">
+<td><p>Low</p></td>
+<td><p>Low</p></td>
+<td><p>Low</p></td>
+<td><p>5.90e-01</p></td>
+<td><p>3.28e-01</p></td>
+<td><p>3.24e-01</p></td>
+<td><p><strong>3.97e-03</strong></p></td>
+</tr>
+</tbody>
+</table>
+<p>Figure 1.13 is a bar plot of the first line of each table.</p>
+<div class="figure">
+<img src="barplot.png" alt="Bar plot in the High/High/High setting" />
+<p class="caption">Bar plot in the High/High/High setting</p>
+</div>
+<p>Figure 1.14 is the plot of the tracking of the position (x, y, z) and attitute (r, i, j, k) in the <strong>low</strong> vicon precision, <strong>low</strong> accelerometer precision and <strong>low</strong> gyroscope precision setting for one of random trajectory.</p>
+<div class="figure">
+<img src="full-plot.png" alt="Plot of the tracking of the different filters" style="width:120.0%" />
+<p class="caption">Plot of the tracking of the different filters</p>
+</div>
 <h2 id="conclusion">Conclusion</h2>
-<p><strong>TODO</strong></p>
+<p>The Rao-Blackwellized Particle Filter developped is more accurate than the alternatives, mathematically sound and computationaly feasible. When implemented on hardware, this filter can be executed in real time with sensors of high sampling rate, this filter could improve POSE estimation for all the existing drone and other robots. These improvements could unlock new abilities and increase the safeness of drone.</p>
+<h2 id="references" class="unnumbered">References</h2>
+<div id="refs" class="references">
+<div id="ref-mueller_computationally_2015">
+<p>[1] M. W. Mueller, M. Hehn, and R. D’Andrea, “A computationally efficient motion primitive for quadrocopter trajectory generation,” <em>IEEE Transactions on Robotics</em>, vol. 31, no. 6, pp. 1294–1310, 2015.</p>
+</div>
+<div id="ref-markley_averaging_2007">
+<p>[2] F. L. Markley, Y. Cheng, J. L. Crassidis, and Y. Oshman, “Averaging quaternions,” <em>Journal of Guidance, Control, and Dynamics</em>, vol. 30, no. 4, pp. 1193–1197, 2007.</p>
+</div>
+<div id="ref-edgar_quaternion-based_nodate">
+<p>[3] K. Edgar, “A Quaternion-based Unscented Kalman Filter for Orientation Tracking.”.</p>
+</div>
+<div id="ref-doucet_tutorial_2009">
+<p>[4] A. Doucet and A. M. Johansen, “A tutorial on particle filtering and smoothing: Fifteen years later,” <em>Handbook of nonlinear filtering</em>, vol. 12, nos. 656-704, p. 3, 2009.</p>
+</div>
+<div id="ref-vernaza_rao-blackwellized_2006">
+<p>[5] P. Vernaza and D. D. Lee, “Rao-Blackwellized particle filtering for 6-DOF estimation of attitude and position via GPS and inertial sensors,” in <em>Robotics and Automation, 2006. ICRA 2006. Proceedings 2006 IEEE International Conference on</em>, 2006, pp. 1571–1578.</p>
+</div>
+</div>
 <div class="footnotes">
 <hr />
 <ol>

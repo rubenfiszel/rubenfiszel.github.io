@@ -40,111 +40,262 @@
 </div>
 <div class="post">
   <h3 id="about">About</h3>
-<p>This post is the part II out of III of my <a href="assets/thesis.pdf">master thesis</a> at the <a href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford, under <a href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and <a href="http://lampwww.epfl.ch/~odersky/">Prof. Odersky</a> supervision. The central themes of this thesis are sensor fusion and spatial, an hardware accelerator language (Verilog is also one, but tedious).</p>
+<p>This post is the part II out of IV of my <a href="assets/thesis.png">master thesis</a> at the <a href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford, under <a href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and <a href="http://lampwww.epfl.ch/~odersky/">Prof. Odersky</a> supervision. The central themes of this thesis are sensor fusion and spatial, an hardware description language (Verilog is also one, but tedious).</p>
 <p>This part is about scala-flow, a simulation library with a spatial-lang integration written to ease the prototyping, development and testing of applications that can be represented as data flows with some subpart going through spatial written accelerators.</p>
-<h1 id="pt-ii-a-simulation-tool-for-scala-with-spatial-integration-scala-flow">Pt II: A simulation tool for scala with spatial integration: scala-flow</h1>
+<h1 id="a-simulation-tool-for-data-flows-with-spatial-integration-scala-flow">A simulation tool for data flows with spatial integration: scala-flow</h1>
 <h2 id="purpose">Purpose</h2>
+<p>Data flows are intuitive visual representation and abstraction of computations. As all forms of representations and abstractions, they help manage complexity, and let engineers reason on a higher level. They are common in the context of embedded systems, and most forms of data processing, in particular those related to the so called <em>big data</em>.</p>
+<p>Spark and Simulink are popular libraries for data processing and embedded systems respectively. Spark grew popular as an alternative to Hadoop. The advantages of Spark over Hadoop was, among others, in-memory communication between nodes (as opposite of through file) and a functionnally inspired scala api that brought better abstractions and greatly reduced the number of line of code.</p>
+<p>Simulink by MathWorks on the other hand, is a graphical programming environment for modeling, simulating and analyzing dynamic systems including potentially embedded systems. Its primary interface is a graphical block diagramming tool and a customizable set of block libraries.</p>
+<div class="figure">
+<img src="simulink.png" alt="An example of the simulink interface" />
+<p class="caption">An example of the simulink interface</p>
+</div>
+<p>scala-flow is inspired by both of these tools. It is general purpose in the sense that it can be used to represent any dynamic systems. Nevertheless, its primary intended usage is to develop, prototype, and debug embedded systems that use hardware reprogrammed by spatial. scala-flow has a functional/composable api, displays the constructed graph, provide block constructions. It provides some strong type safety: the type of the input and output of each node is checked at compilation to ensure the soundness of the resulting graph.</p>
 <h2 id="source-sink-and-transformations">Source, Sink and Transformations</h2>
+<p>Data is under the form of “packets” containing a value of arbitrary type, an emission timestamp and the delays the packet has encountered through the different node processing.</p>
+<p><code>case class Timestamped[A](t: Time, v: A, dt: Time)</code></p>
+<p>(They are called Timestamped because they represent the value with timestamp informations.)</p>
+<p>Data get emitted from sources (nodes with no input), processed and tranformed by other nodes until they reach sinks (nodes with no output). The nodes are connected between each other in many forms.</p>
+<p>Nodes all mix-in the common trait <code>Node</code>. Every nodes also mix-in the trait <code>Source[A]</code> whose type parameter <code>A</code> indicates the type parameters of the packets emitted by this node. Indeed, nodes can only have one output. Every nodes also minx-in the trait <code>SourceX[A, B, ...]</code> where X is the arity of the number of input for that nodes and replace by the actual arity (1, 2, 3, …). This is similar to <code>FunctionX</code> which is the type of functions in scala.</p>
+<ul>
+<li><code>Source0</code> indicates that the node take exactly 0 input.</li>
+<li><code>Source1[A]</code> indicates that the node has 1 input whose packets are of type A.</li>
+<li><code>Source2[A,B]</code> indicates that the nodes has 2 inputs whose packets are respectively of type <code>A</code> and <code>B</code></li>
+<li>etc …</li>
+</ul>
+<p>Since all nodes mix-in a <code>SourceX</code>, the compiler can check that the inputs of each node are of the right type.</p>
+<p>An intermediary node that applies a transformation mixs-in the trait <code>OpX[A, B, ..., R]</code> where <code>A, B</code> is the type of the input, and <code>R</code> is the type of the output. Indeed,</p>
+<p><code>OpX[A, B, ..., R] extends SourceX[A, B, ...] with Source[R]</code>.</p>
+<p>For instance <code>zip(sourceA, sourceB)</code> is an <code>Op[A, B, (A, B)]</code></p>
+<h2 id="demo">Demo</h2>
+<p>Below is the scala-flow code corresponding to a data-flow that enable to compare a particle filter, an extended kalman filter, and the true state of the underlying model. At each tick of the different clocks, a packet containing the time as value is sent to nodes representing sensors. Those sensors have access to the model that is not represented here (the trajectory of the drone) and transform the time into noisy sensor measurements and forward them to the two filters. The packets once processed by the filters are plotted by the Plot sink. The plot also take as input the true state as given by the “toPoints” transformation.</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
+  <span class="co">//****** Model ******</span>
+  <span class="kw">val</span> dtIMU   = <span class="fl">0.01</span>
+  <span class="kw">val</span> dtVicon = (dtIMU * <span class="dv">5</span>)
+
+  <span class="kw">val</span> covAcc    = <span class="fl">1.0</span> 
+  <span class="kw">val</span> covGyro   = <span class="fl">1.0</span> 
+  <span class="kw">val</span> covViconP = <span class="fl">0.1</span> 
+  <span class="kw">val</span> covViconQ = <span class="fl">0.1</span>
+
+  <span class="kw">val</span> numberParticles = <span class="dv">1200</span>
+
+  <span class="kw">val</span> clockIMU   = <span class="kw">new</span> <span class="fu">TrajectoryClock</span>(dtIMU)
+  <span class="kw">val</span> clockVicon = <span class="kw">new</span> <span class="fu">TrajectoryClock</span>(dtVicon)
+
+  <span class="kw">val</span> imu   = clockIMU.<span class="fu">map</span>(<span class="fu">IMU</span>(<span class="fu">eye</span>(<span class="dv">3</span>) * covAcc, <span class="fu">eye</span>(<span class="dv">3</span>) * covGyro, dtIMU))
+  <span class="kw">val</span> vicon = clockVicon.<span class="fu">map</span>(<span class="fu">Vicon</span>(<span class="fu">eye</span>(<span class="dv">3</span>) * covViconP, <span class="fu">eye</span>(<span class="dv">3</span>) * covViconQ))
+
+  <span class="kw">lazy</span> <span class="kw">val</span> pfilter = 
+      <span class="fu">ParticleFilterVicon</span>(
+        imu,
+        vicon,
+        numberParticles,
+        covAcc,
+        covGyro,
+        covViconP,
+        covViconQ
+      )
+
+  <span class="kw">lazy</span> <span class="kw">val</span> ekfilter = 
+      <span class="fu">EKFVicon</span>(
+        imu,
+        vicon,
+        covAcc,
+        covGyro,
+        covViconP,
+        covViconQ
+      )
+
+  <span class="kw">val</span> filters = List(ekfilter, pfilter)
+
+  <span class="kw">val</span> points = clockIMU.<span class="fu">map</span>(<span class="fu">LambdaWithModel</span>(
+	(t: Time, traj: Trajectory) =&gt; traj.<span class="fu">getPoint</span>(t)), <span class="st">&quot;toPoints&quot;</span>)
+
+  <span class="kw">val</span> pqs =  points.<span class="fu">map</span>(x =&gt; (x.<span class="fu">p</span>, x.<span class="fu">q</span>), <span class="st">&quot;toPandQ&quot;</span>)
+
+  <span class="fu">Plot</span>(pqs, filters:_*)</code></pre></div>
+<pre class="text" samepage="true"><code> ┌────────────────────┐ ┌────────────────────┐
+ │TrajectoryClock 0.01│ │TrajectoryClock 0.05│
+ └─────┬────────────┬─┘ └────────┬───────────┘
+       │            │            │            
+       v            v            v            
+   ┌───────┐   ┌────────┐   ┌─────────┐       
+   │Map IMU│   │toPoints│   │Map Vicon│       
+   └──┬──┬─┘   └────┬───┘   └───┬──┬──┘       
+      │  │          │           │  │          
+      │  │          │    ┌──────┘  │          
+      │  └──────────┼────┼─────────┼┐         
+      └───────────┐ │    │         ││         
+     ┌────────────┼─┘    │         ││         
+     │            │      │         ││         
+     v            v      v         vv         
+ ┌───────┐ ┌───────────────────┐ ┌────────┐   
+ │toPandQ│ │ParticleFilterVicon│ │EKFVicon│   
+ └───┬───┘ └──────────┬────────┘ └────┬───┘   
+     │                │               │       
+     └──────────────┐ │ ┌─────────────┘       
+                    │ │ │                     
+                    v v v                     
+                  ┌───────┐                   
+                  │ Plot  │                   
+                  └───────┘                  </code></pre>
+<p>The filters are block with the following signatures:</p>
+<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">case</span> <span class="kw">class</span> <span class="fu">ParticleFilterVicon</span>(rawSource1: Source[(Acceleration, Omega)],
+                               rawSource2: Source[(Position, Attitude)],
+                               N: Int,
+                               covAcc: Real,
+                               covGyro: Real,
+                               covViconP: Real,
+                               covViconQ: Real)							   </code></pre></div>
+<p>and similar for EKFVicon.</p>
+<h2 id="blocks">Blocks</h2>
 <h2 id="flow-graphical-representation">Flow graphical representation</h2>
 <h2 id="buffer-and-cycles">Buffer and cycles</h2>
 <h2 id="data">Data</h2>
 <h2 id="source-api">Source API</h2>
 <h3 id="fp">FP</h3>
 <p>Here is a simplified description of the API of each source.</p>
+<p>When relevant, the functions have an alternative <code>methodNameT</code> function that takes themselves function whose domain is <code>Timestamped[A]</code> instead of <code>A</code>.</p>
+<p>For instance, there is a</p>
+<p><code>def foreachT(f: Timestamped[A] =&gt; Unit): Source[A]</code></p>
+<p>that is equivalent to the <code>foreach</code> below except it can access the additional fields in <code>Timestamped</code></p>
 <div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala">
 <span class="kw">trait</span> Source[A] {
 
-	<span class="kw">def</span> <span class="fu">foreach</span>(f: A =&gt; Unit): Source[A]
-	<span class="kw">def</span> <span class="fu">foreachT</span>(f: Timestamped[A] =&gt; Unit): Source[A]
-	
-	<span class="kw">def</span> <span class="fu">filter</span>(b: A =&gt; Boolean): Source[A]
-	<span class="kw">def</span> <span class="fu">filterT</span>(b: Timestamped[Boolean]): Source[A]	
-	
-	<span class="kw">def</span> <span class="fu">takeWhile</span>(b: A =&gt; Boolean): Source[A]
-	<span class="kw">def</span> <span class="fu">takeWhileT</span>(b: Timestamped[A] =&gt; Boolean): Source[A] 
-	
-	<span class="kw">def</span> <span class="fu">drop</span>(n: Int): Source[A]		
-	
-	<span class="kw">def</span> muted: Source[A]	
-	
-	<span class="kw">def</span> <span class="fu">accumulate</span>(clock: Source[Time]): Source[ListT[A]]
-	
-	<span class="kw">def</span> reduce[B](default: B, f: (B, B) =&gt; B)
-		(<span class="kw">implicit</span> ev: A &lt;:&lt; ListT[B]): Source[B]
-	<span class="kw">def</span> reduceT[B](default: B,
-		          f: (Timestamped[B], Timestamped[B]) =&gt; Timestamped[B])
-		(<span class="kw">implicit</span> ev: A &lt;:&lt; List[Timestamped[B]]): Source[B]
+  <span class="co">/** return a new source that map every incoming packet by the function f </span>
+<span class="co">    * such that new packets are Timestamped[B] </span>
+<span class="co">    */</span>
+  <span class="kw">def</span> map[B](f: A =&gt; B): Source[B]
 
-	<span class="kw">def</span> groupBy[B](f: A =&gt; B): Source[(B, A)]
-    <span class="kw">def</span> groupByT[B](f: Timestamped[A] =&gt; B): Source[(B, A)]	
+  <span class="co">/** return a filtered source that only broadcast</span>
+<span class="co">    *  the elements that satisfy the predicate b */</span>
+  <span class="kw">def</span> <span class="fu">filter</span>(b: A =&gt; Boolean): Source[A]
+
+  <span class="co">/** return this source and apply the function f to each</span>
+<span class="co">    *  incoming packets as soon as they are received </span>
+<span class="co">    */</span>
+  <span class="kw">def</span> <span class="fu">foreach</span>(f: A =&gt; Unit): Source[A]
   
-	<span class="kw">def</span> <span class="fu">debug</span>(): Source[A]
-
-	<span class="co">//USE ONLY WHEN THERE IS NO LOOP INVOLVED</span>
-	<span class="kw">def</span> <span class="fu">buffer</span>(init: A): Buffer[A]
-
-	<span class="co">//Get old A but with the time of the new A</span>
-	<span class="kw">def</span> <span class="fu">bufferWithTime</span>(init: A): Buffer[A]
-
-	<span class="kw">def</span> map[B](f: A =&gt; B): Source[B]
-	<span class="kw">def</span> mapT[B](f: Timestamped[A] =&gt; B): Source[B]
-
-	<span class="kw">def</span> flatMap[C](f: A =&gt; List[C]): Source[C]
-	<span class="kw">def</span> flatMapT[C](f: Timestamped[A] =&gt; List[Timestamped[C]]): Source[C]	
-
-	<span class="co">//Divide the frequency of the stream by n</span>
-	<span class="kw">def</span> <span class="fu">divider</span>(n: Int)
-
-	<span class="co">//Zip everthing</span>
-	<span class="co">// A1 A2 B1 A3 B2 B3 B4 B5 A4</span>
-	<span class="co">// =&gt; (A1, B1), (A2, B2), (A3, B3), (A4, B4), [Queue[B5]]</span>
-	<span class="kw">def</span> zip[B](s2: Source[B])	
-	<span class="kw">def</span> zipT[B](s2: Source[B])
-
-	<span class="kw">def</span> unzip2[B, C](<span class="kw">implicit</span> ev: A &lt;:&lt; (B, C)): (Source[B], Source[C]) 
-
-	<span class="co">//Only zip the last of the right</span>
-	<span class="co">// A1 A2 B1 A3 B2 B3 B4 B5 A4=&gt; (A1, B1), (A2, B2), (A3, B3), (A4, B5)</span>
-	<span class="kw">def</span> zipLastRight[B](s2: Source[B])
-		: Source[(Timestamped[A], Timestamped[B])]	
-	<span class="kw">def</span> zipLastRightT[B](s2: Source[B])
-		: Source[(Timestamped[A], Timestamped[B])]	
-	
-	<span class="co">//Only zip the last pair</span>
-	<span class="co">// A1 A2 B1 A3 B2 B3 A4=&gt; (A1, B1), (A3, B2), (B3, A4)</span>
-	<span class="kw">def</span> zipLast[B](s2: Source[B])
-		: Source[(Timestamped[A], Timestamped[B])]	
-	<span class="kw">def</span> zipLastT[B](s2: Source[B])
-		: Source[(Timestamped[A], Timestamped[B])]	
+  <span class="co">/** return a new source that broadcast elements</span>
+<span class="co">    * until the first time the predicate b is not satisfied</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> <span class="fu">takeWhile</span>(b: A =&gt; Boolean): Source[A]  
   
-	<span class="kw">def</span> merge[B](s2: Source[B]): Source[Either[A, B]]
-	
-	<span class="kw">def</span> <span class="fu">fusion</span>(sources: Source[A]*): Source[A]
-	
-	<span class="kw">def</span> <span class="fu">latency</span>(dt: Time): Source[A]
-	
-	<span class="kw">def</span> toTime: Source[Time]
+  <span class="co">/** return a new source that accumulate As into a List[A]</span>
+<span class="co">    * then broadcast it when the next packet from the other </span>
+<span class="co">    * source clock is received </span>
+<span class="co">    */</span>
+  <span class="kw">def</span> <span class="fu">accumulate</span>(clock: Source[Time]): Source[ListT[A]]
+    
+  <span class="co">/** return a new source that broadcast all element inside the collection</span>
+<span class="co">    * returned by the application of f to all incoming packet</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> flatMap[C](f: A =&gt; List[C]): Source[C]
+ 
+  <span class="co">/** assumes that A is a List[Timestamped[B]]. </span>
+<span class="co">    * returns a new source that apply the reduce function </span>
+<span class="co">    * over the collection contained in every incoming packet */</span>
+  <span class="kw">def</span> reduce[B](default: B, f: (B, B) =&gt; B)
+      (<span class="kw">implicit</span> ev: A &lt;:&lt; ListT[B]): Source[B]
+	  
+  <span class="co">/** return a new source that broadcast pair of the packet from this source </span>
+<span class="co">    * and the source provided as argument. Wait until a packet is received </span>
+<span class="co">    * from both source. Packets from both source are queued such </span>
+<span class="co">    * that independant of the order, they are never discarded</span>
+<span class="co">    * A2 B1 A3 B2 B3 B4 B5 A4=&gt; (A1, B1), (A2, B2), (A3, B3), (A4, B4),</span>
+<span class="co">	* [Queue[B5]]</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> zip[B](s2: Source[B]): Source[Boolean]
 
+
+  <span class="co">/** return a new source that broadcast pair of the packet from this source </span>
+<span class="co">    * and the source provided as argument. Similar to zip except that </span>
+<span class="co">	* if multiple packets from the source provided as argument is received</span>
+<span class="co">	* before, all except the last get discarded.</span>
+<span class="co">    * A2 B1 A3 B2 B3 B4 B5 A4=&gt; (A1, B1), (A2, B2), (A3, B3), (A4, B4),</span>
+<span class="co">	* [Queue[B5]]</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> zipLastRight[B](s2: Source[B])
+
+  
+  <span class="co">/** return a new source that broadcast pair of the packet from this source </span>
+<span class="co">    * and the source provided as argument. Similar to zip except that all </span>
+<span class="co">	* packet except the last get discarded when both source are not in sync.</span>
+<span class="co">    * A1 A2 B1 A3 B2 B3 A4=&gt; (A1, B1), (A3, B2), (B3, A4)</span>
+<span class="co">    */</span>  
+  <span class="kw">def</span> zipLast[B](s2: Source[B])
+
+  <span class="co">/** return a new source that combine this source and the provided source .</span>
+<span class="co">    * packets from this source are Left</span>
+<span class="co">    * packets from the other source are Right</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> merge[B](s2: Source[B]): Source[Either[A, B]]
+  
+  <span class="co">/** return a new source that fuse this source and the provided source</span>
+<span class="co">    * as long they have the same type.</span>
+<span class="co">    * any outgoing packet is indistinguishable of origin</span>
+<span class="co">    */</span>  
+  <span class="kw">def</span> <span class="fu">fusion</span>(sources: Source[A]*): Source[A]	  
+
+  <span class="co">/** &quot;label&quot; every packet by the group returned by f */</span>  
+  <span class="kw">def</span> groupBy[B](f: A =&gt; B): Source[(B, A)]
+
+  <span class="co">/** print every incoming packet */</span>
+  <span class="kw">def</span> <span class="fu">debug</span>(): Source[A]
+
+  <span class="co">/** return a new source that buffer 1 element and </span>
+<span class="co">    * broadcast the buffered element with the time of the incoming A </span>
+<span class="co">    */</span>
+  <span class="kw">def</span> <span class="fu">bufferWithTime</span>(init: A): Source[A] 
+  
+  <span class="co">/** return a new source that do NOT broadcast any element */</span>
+  <span class="kw">def</span> muted: Source[A]
+
+  <span class="co">/** return a new source that broadcast one incoming packet every </span>
+<span class="co">    * n incoming packet.</span>
+<span class="co">    * The first broadcasted packet is the nth received one</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> <span class="fu">divider</span>(n: Int): Source[A]
+
+  <span class="co">/** return a pair of source from a source of pair */</span>
+  <span class="kw">def</span> unzip2[B, C](<span class="kw">implicit</span> ev: A &lt;:&lt; (B, C)): (Source[B], Source[C])
+  
+  <span class="co">/** return a new source whose every outgoing packet have an added dt</span>
+<span class="co">    * in their delay component</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> <span class="fu">latency</span>(dt: Time): Source[A]
+
+  <span class="co">/** return a new source whose broadcasted packets contain the time of </span>
+<span class="co">    * emission</span>
+<span class="co">    */</span>
+  <span class="kw">def</span> toTime: Source[Time]
+
+  <span class="co">/** return a new source that do NOT broadcast the first n packets */</span>
+  <span class="kw">def</span> <span class="fu">drop</span>(n: Int): Source[A]
 }
 
-<span class="kw">class</span> <span class="fu">TimeSource</span>(source: Source[Time]) {
 
+<span class="kw">implicit</span> <span class="kw">class</span> <span class="fu">TimeSource</span>(source: Source[Time]) {
+
+  <span class="co">/** stop the broadcasting after the timeframe tf has elapsed */</span>
   <span class="kw">def</span> <span class="fu">stop</span>(tf: Timeframe): Source[Time]
 
-  <span class="kw">def</span> <span class="fu">latencyVariance</span>(mean: Real, std: Real): Source[Time]
-  
-  <span class="kw">def</span> <span class="fu">latency</span>(dt: Time): Source[Time] 
-  
+  <span class="co">/** add a random delay following a gaussian with corresponding </span>
+<span class="co">    * mean and variance */</span>
+  <span class="kw">def</span> <span class="fu">latencyVariance</span>(mean: Real, variance: Real): Source[Time]
+
+  <span class="co">/** add a delay of dt */</span>
+  <span class="kw">def</span> <span class="fu">latency</span>(dt: Time): Source[Time]
+
+  <span class="co">/** return a new source of the difference of time between </span>
+<span class="co">    * the two last emitted packets */</span>
   <span class="kw">def</span> <span class="fu">deltaTime</span>(init: Time = <span class="fl">0.0</span>): Source[Time]
   
-}
-
-<span class="kw">class</span> DataSource[A: Data](source: Source[A]) {
-
-  <span class="kw">def</span> <span class="fu">labelData</span>(f: Time =&gt; A): Source[LabeledData[A]]
-  
 }</code></pre></div>
-<p>The real API includes also a name and silent parameter. Both are useful for the graphical representation. The name of the block will be overriden by name if present and it will be skipped if silent is present.</p>
+<p>The real API includes also a <code>name</code> and <code>silent</code> parameter. Both are only relevant for the graphical representation. The name of the block will be overriden by name if present and the node will be skipped in the graphical representation if silent is present.</p>
 <h2 id="block">Block</h2>
 <h2 id="scheduling">Scheduling</h2>
 <h2 id="batch">Batch</h2>
@@ -152,7 +303,10 @@
 <h2 id="spatial-integration">Spatial integration</h2>
 <h2 id="conclusion">Conclusion</h2>
 <p><strong>TODO</strong></p>
-<h2 id="references">References</h2>
+<h2 id="references" class="unnumbered">References</h2>
+<div id="refs" class="references">
+
+</div>
 </div>
 <div class="license" style="margin-left:80%;">
   <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons" style="border-width:0" src="../../images/cc.png" /></a>
