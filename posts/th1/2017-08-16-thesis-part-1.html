@@ -74,12 +74,12 @@
 <p>All the following filters are developed and tested in scala-flow. scala-flow will be expanded in part II of this thesis. For now, we will focus on the model and the results, and leave the implementation details for later.</p>
 <h2 id="drones-and-collision-avoidance">Drones and collision avoidance</h2>
 <p>The original motivation for the development of accelerated POSE estimation is for the task of collision avoidance by quadcopters. In particular, a collision avoidance algorithm developed at the <a href="https://asl.stanford.edu/">ASL lab</a> and demonstrated here <a href="https://www.youtube.com/watch?v=kdlhfMiWVV0">(https://youtu.be/kdlhfMiWVV0)</a></p>
-<div class="figure">
-<img src="fencing.png" alt="Ross Allen fencing with his drone" />
-<p class="caption">Ross Allen fencing with his drone</p>
-</div>
 <iframe width="560" height="315" src="https://www.youtube.com/embed/kdlhfMiWVV0" frameborder="0" allowfullscreen>
 </iframe>
+<div class="figure">
+<img src="empty.jpg" alt="Ross Allen fencing with his drone" />
+<p class="caption">Ross Allen fencing with his drone</p>
+</div>
 <p>where the drone avoids the sword attack from its creator. At first, it was thought of accelerating the whole algorithm but it was found that one of the most demanding subroutines was pose estimation. Moreover, it was wished to increase the processing rate of the filter such that it could match the input with the fastest sampling rate: its inertial measurement unit (IMU) containing an accelerometer, a gyroscope and a magnetometer.</p>
 <p>The flamewheel f450 is the typical drone in this category. It is surprisingly fast and agile. With the proper commands, it can generate enough thrust to avoid any incoming object in a very short lapse of time.</p>
 <div class="figure">
@@ -122,7 +122,7 @@
 <source src="flight.webm" type="video/webm">
 </video>
 <div class="figure">
-<embed src="flight.webm" width="400" />
+<img src="empty.jpg" alt="Visualization of an example of a synthetic generated flight trajectory" />
 <p class="caption">Visualization of an example of a synthetic generated flight trajectory</p>
 </div>
 <h2 id="quaternion">Quaternion</h2>
