@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
     <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-	<title>[thesis I] Accelerated sensor fusion algorithm for POSE estimation of drones: Asynchronous Rao-Blackwellized Particle filter - Ruben Fiszel's website</title>
+	<title>(thesis 1/4) Accelerated sensor fusion algorithm for POSE estimation of drones - Ruben Fiszel's website</title>
 	<link rel="icon" type="image/png" href="../../images/lambda-xl.png">
 	<link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
 	<link rel="stylesheet" type="text/css" href="../../sass/main.css" />
@@ -30,16 +30,17 @@
 	</div>
 
 	<div id="content">
-	    <h1> [thesis I] Accelerated sensor fusion algorithm for POSE estimation of drones: Asynchronous Rao-Blackwellized Particle filter</h1>
+	  <h1 class="post-title"> (thesis 1/4) Accelerated sensor fusion algorithm for POSE estimation of drones</h1>
+	  <h2 class="post-title"> An Accelerated and Asynchronous Rao-Blackwellized Particle filter</h2>	  
 
 	    <div class="info">
-    Posted on August 16, 2017
-    
-        by Ruben Fiszel
-    
-</div>
-<div class="post">
-  <h3 id="about">About</h3>
+	      Posted on August 16, 2017
+	      
+              by Ruben Fiszel
+	      
+	    </div>
+	    <div class="post">
+	      <h3 id="about">About</h3>
 <p>This post is the part I out of IV of my <a href="../../assets/thesis.pdf">master thesis</a> at the <a href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford, under <a href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and <a href="http://lampwww.epfl.ch/~odersky/">Prof. Odersky</a> supervision. The central themes of this thesis are sensor fusion and spatial, an hardware description language (Verilog is also one, but tedious).</p>
 <p>This part is about an application of hardware acceleration, sensor fusion for drones. Part II will be about <a href="https://github.com/rubenfiszel/scala-flow/">scala-flow</a>, a library made during my thesis as a development tool for Spatial inspired by Simulink. This library eased the development of the filter but is also intended to be general purpose. Part III is about the development of an interpreter for spatial. Finally, Part IV is about the spatial implementation of the asynchronous Rao-Blackwellized Particle filter presented in Part I. If you are only interested in the filter, you can skip the introduction.</p>
 <h1 id="introduction" class="unnumbered">Introduction</h1>
@@ -869,11 +870,10 @@ w^{(i)}_k &amp;\propto \frac{p(\mathbf{y}_k | \mathbf{x}^{(i)}_{k})p(\mathbf{x}^
 <li id="fn4"><p>The etymology for “Dead reckoning” comes from the mariners of the XVIIth century that used to calculate the position of the vessel with log book. The interpretation of “dead” is subject to debate. Some argue that it is a misspelling of “ded” as in “deduced”. Others argue that it should be read by its old meaning: <em>absolute</em>.<a href="#fnref4">↩</a></p></li>
 </ol>
 </div>
-</div>
-<div class="license" style="margin-left:80%;">
-  <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons" style="border-width:0" src="../../images/cc.png" /></a>
-</div>
-
+	    </div>
+	    <div class="license" style="margin-left:80%;">
+	      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons" style="border-width:0" src="../../images/cc.png" /></a>
+	    </div>
 	</div>
 
 	<hr>

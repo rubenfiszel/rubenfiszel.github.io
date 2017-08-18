@@ -30,16 +30,17 @@
 	</div>
 
 	<div id="content">
-	    <h1> Reinforcement Learning and DQN, learning to play from pixels</h1>
+	  <h1 class="post-title"> Reinforcement Learning and DQN, learning to play from pixels</h1>
+	  <h2 class="post-title"> </h2>	  
 
 	    <div class="info">
-    Posted on August 24, 2016
-    
-        by Ruben Fiszel
-    
-</div>
-<div class="post">
-  <h1 id="introduction">Introduction</h1>
+	      Posted on August 24, 2016
+	      
+              by Ruben Fiszel
+	      
+	    </div>
+	    <div class="post">
+	      <h1 id="introduction">Introduction</h1>
 <p>My 2 month summer internship at Skymind (the company behind the open source deeplearning library <a href="http://deeplearning4j.org">DL4J</a>) comes to an end and this is a post to summarize what I have been working on: Building a deep reinforcement learning library for DL4J: … (drums roll) … RL4J! This post begins by an introduction to reinforcement learning and is then followed by a detailed explanation of DQN (Deep Q-Network) for pixel inputs and is concluded by an RL4J example. I will assume from the reader some familiarity with neural networks. But first, lets talk about the core concepts of reinforcement learning.</p>
 <div class="figure">
 <img src="cartpole.gif" alt="Cartpole" />
@@ -553,11 +554,10 @@ Q_\pi(s, a) &amp;= E[r_t + \gamma r_{t+1} + \ldots + \gamma^n  r_{n} \mid s_t = 
 <li id="fn1"><p>(Note: As my semester project advisor remarked, this is not always true. Imagine you play against a beginner at chess and you are badly losing, you might want to “bait” him to reverse the situation. A bait is only beneficial when the opponent has a low level of play. This proves that chess is not a real Nash equilibrium. This does not matter much because the goal is often to build a high level of play agent that plays against other high quality agents. At this level of play, you do not loose if given a significant advantage.<a href="#fnref1">↩</a></p></li>
 </ol>
 </div>
-</div>
-<div class="license" style="margin-left:80%;">
-  <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons" style="border-width:0" src="../../images/cc.png" /></a>
-</div>
-
+	    </div>
+	    <div class="license" style="margin-left:80%;">
+	      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons" style="border-width:0" src="../../images/cc.png" /></a>
+	    </div>
 	</div>
 
 	<hr>
