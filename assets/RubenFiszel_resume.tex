@@ -1,7 +1,3 @@
-% Exemple de CV utilisant la classe moderncv
-% Style classic en bleu
-% Article complet : http://blog.madrzejewski.com/creer-cv-elegant-latex-moderncv/
-
 \documentclass[11pt,usletter]{moderncv}
 \moderncvtheme[blue]{classic}
 \usepackage{fontawesome}
@@ -12,40 +8,37 @@
 
 \firstname{Ruben}
 \familyname{Fiszel}
-\title{Master student in CS at EPFL\newline{} VSR at Stanford}
-\phone{(415) 570-4109}
-\email{ruben.fiszel@epfl.ch}
+\title{Software Engineer at Palantir}
+\phone{+1 (415) 570-4109}
+\email{rubenfiszel@gmail.com}
 \extrainfo{\faGithub ~ rubenfiszel \\ \faLinkedin ~ rubenfiszel \\ \faGlobe rubenfiszel.github.io}
 
 
 \begin{document}
 \maketitle
 
-\section{Education}
-\cventry{Feb 2017 - Sep 2017}{Stanford University}{Palo Alto, USA}{}{Visiting Student Researcher}{Master's thesis on ``abstraction without compromise'' at the PPL under Prof. Kunle Olukotun and Prof. Martin Odersky supervision. Working on applying a Scala to FPGA compiler for autonomous driving of drones.}
-\cventry{2015 - Sep 2017}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{Master in Computer Science with a minor in Financial Engineering \\
-\textbf{Overall current GPA: 5.58/6 (Top 5\%)}}
-\cventry{2014-2015}{Johns Hopkins University (JHU)}{Baltimore, USA}{}{}{Third and Last year of Bachelor: Study abroad. \textbf{Selected with a scholarship}}
-\cventry{2012-2015}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{Bachelor in CS \\
-\textbf{Overall GPA: 5.16/6 (Top 5\%)}}
-
-
 \section{Work Experience}
-\cventry{Summer 2016}{Skymind}{San Francisco, US}{}{}{\normalsize{\textbf{Software Engineer Intern}} \\ Author of the Deep Reinforcement Library rl4j (github.com/deeplearning4j/rl4j). Library includes the asynchronous method A3C and is able to play from pixel input. }
-\cventry{Summer 2013}{Crossing-Tech}{Lausanne, Switzerland}{}{}{\normalsize{\textbf{Software Engineer Intern}} \\ Creating the backend to understand and execute the clients requests expressed in natural language through NLP}
+\cventry{2017 - ...}{Palantir}{London, UK}{}{}{\normalsize{\textbf{Software Engineer}}\\ Developper tools (LSP) for Spark integration with SQL, Java/Scala and Python.\\ Spark job orchestration on kubernetes}
+\cventry{Summer 2016}{Skymind}{San Francisco, US}{}{}{\normalsize{\textbf{Software Engineer Intern}} \\ Converting personal project scala-drl into the official reinforcement learning library for dl4j: rl4j.}
+\cventry{Summer 2013}{Crossing-Tech}{Lausanne, Switzerland}{}{}{\normalsize{\textbf{Software Engineer Intern}} NLP with Scala and the Grammatical Framework}
+
+\section{Education}
+\cventry{2017}{Stanford University}{Palo Alto, USA}{}{Visiting Student Researcher}{Master thesis on ``abstraction without compromise'' at the DAWM lab under Prof. Kunle Olukotun and Prof. Martin Odersky supervision.}
+\cventry{2015 - 2017}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{MSc in Computer Science with a minor in Financial Engineering \\
+\textbf{CS GPA: 5.61/6 (Top 5\%)}}
+\cventry{2014-2015}{Johns Hopkins University (JHU)}{Baltimore, USA}{}{}{Third and Last year of Bachelor: Study abroad. \textbf{Selected with a scholarship}}
+\cventry{2012-2015}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{Bachelor in CS \textbf{Overall GPA: 5.16/6 (Top 5\%)}}
 
 
 \section{Relevant Projects}
-\cventry{Spring 2016}{Study of deep reinforcement learning methods and deep exploration}{}{}{}{Semester project at the Laboratory of Artificial Intelligence at EPFL}
-\cventry{2014-2015}{Android Strategy game, Sole developer}{Scala with libgdx}{}{}{Game inspired by Faster Than Light (FTL) with some real-time strategy (RTS) elements}
-\cventry{2014}{Quizz application backend}{Scala with Akka}{}{}{Development of a scalable backend architecture for a high number of players}
-\cventry{2014}{eShop armancerotceig.com}{Python with Django}{}{}{}
-\cventry{2012-2013}{Android Strategy Game}{Scala with libgdx}{Not published}{}{Turn-by-turn strategy game, inspired from Advance Wars for Nintendo GBA}
+\cventry{2017}{Spatial}{}{}{Contributed to Spatial, a Scala to FPGA/CGRA compiler, built its interpreter and applied Spatial to accelerated sensor fusion on drones as my master thesis at Stanford's DAWN lab. (github.com/stanford-ppl/spatial)}{}
+\cventry{2017}{scala-flow}{}{}{Built ``Scala data-flow library'' to develop real-time dataflows in a functionnal manner. Alternative to Simulink and compatible with Spatial. (github.com/rubenfiszel/scala-flow)}{}
+\cventry{2016}{rl4j}{}{}{Built ``reinforcement learning for java'' library developed as part of my internship at Skymind (github.com/deeplearning4j/rl4j)}{}
+\cventry{2016}{scala-drl}{}{}{Built ``Scala deep reinforcement learning library'' developed as part of my semester project at the Laboratory of Artificial Intelligence at EPFL (github.com/rubenfiszel/scala-drl)}{}
 
 \section{Skills}
-\cvitem{Programming}{Scala, Haskell, OCaml, Python, Erlang, Typescript, Java, R}
-\cvitem{Languages}{Native French, Fluent English, Basic German}
-\cvitem{Interests}{Strong interest in Statistics, Functionnal Programming, Artificial Intelligence, Machine Learning, NLP}
+\cvitem{Programming}{Scala, Haskell, OCaml, Python, Erlang, Typescript, Java}
+\cvitem{Interests}{Probabilities, Functionnal Programming, Machine Learning (RL and NLP)}
 \cvitem{Programming Contests}{
   TreeHacks 2017 ~ HackEPFL 2016 ~ HopHacks 2015 ~ Google Code Jam: 2012, 2013 ~ Helvetic Coding Contest (hc2): 2013 ~ IEEEXtreme Programming: 2013 (72nd Mondial Ranking) ~~Prologin: 2012, 2011
 }
