@@ -1,4 +1,4 @@
-\documentclass[11pt,usletter]{moderncv}
+\documentclass[11pt,]{moderncv}
 \moderncvtheme[blue]{classic}
 \usepackage{fontawesome}
 % \usepackage{setspace}
@@ -8,8 +8,8 @@
 
 \firstname{Ruben}
 \familyname{Fiszel}
-\title{Software Engineer at Palantir}
-\phone{+1 (415) 570-4109}
+\title{SWE at Palantir\newline{}\newline{}Functional Programming, Compilers, ML \newline{}and Distributed Systems}
+\phone{(415) 570-4109}
 \email{rubenfiszel@gmail.com}
 \extrainfo{\faGithub ~ rubenfiszel \\ \faLinkedin ~ rubenfiszel \\ \faGlobe rubenfiszel.github.io}
 
@@ -18,35 +18,34 @@
 \maketitle
 
 \section{Work Experience}
-\cventry{2017 - ...}{Palantir}{London, UK}{}{}{\normalsize{\textbf{Software Engineer}}\\ Developper tools (LSP) for Spark integration with SQL, Java/Scala and Python.\\ Spark job orchestration on kubernetes}
-\cventry{Summer 2016}{Skymind}{San Francisco, US}{}{}{\normalsize{\textbf{Software Engineer Intern}} \\ Converting personal project scala-drl into the official reinforcement learning library for dl4j: rl4j.}
-\cventry{Summer 2013}{Crossing-Tech}{Lausanne, Switzerland}{}{}{\normalsize{\textbf{Software Engineer Intern}} NLP with Scala and the Grammatical Framework}
+\cventry{2017 - Present}{Palantir}{\normalsize{\textbf{Software Engineer}}}{London, UK}{}{
+\textbf{Core distributed infrastructure:} refactored the microservice webserver library, switching it from Jetty to Undertow, as well as developing meta-programming generators targeting it. Resulted in large performance, correctness, and maintainability improvements.
+\\ \textbf{SQL Language Server}: Developed SQL Analysers and an infrastructure compatible with the Language Server Protocol to provide live feedback to users on our internal web IDE.
+\\ \textbf{Devtools}: Developed Gradle plugins to solve our ``Dependency hell'' situation.}
+\cventry{Summer 2016}{Skymind}{\normalsize{\textbf{Software Engineer Intern}}}{San Francisco, US}{}{ Wrote deeplearning4j's official Deep Reinforcement Learning library RL4J (github.com/deeplearning4j/rl4j).}
+\cventry{Summer 2013}{Crossing-Tech}{\normalsize{\textbf{Software Engineer Intern}}}{Lausanne, Switzerland}{}{NLP prototyping.}
+
 
 \section{Education}
-\cventry{2017}{Stanford University}{Palo Alto, USA}{}{Visiting Student Researcher}{Master thesis on ``abstraction without compromise'' at the DAWM lab under Prof. Kunle Olukotun and Prof. Martin Odersky supervision.}
-\cventry{2015 - 2017}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{MSc in Computer Science with a minor in Financial Engineering \\
-\textbf{CS GPA: 5.61/6 (Top 5\%)}}
-\cventry{2014-2015}{Johns Hopkins University (JHU)}{Baltimore, USA}{}{}{Third and Last year of Bachelor: Study abroad. \textbf{Selected with a scholarship}}
-\cventry{2012-2015}{École Polytechnique Fédérale de Lausanne (EPFL)}{Lausanne, Switzerland}{}{}{Bachelor in CS \textbf{Overall GPA: 5.16/6 (Top 5\%)}}
+\cventry{2017}{Stanford University}{Visiting Student Researcher}{}{}{Master thesis on ``abstraction without compromise'' at the DAWN lab under Prof. Kunle Olukotun and Prof. Martin Odersky supervision. Contributed to Spatial, a Scala to Hardware (FPGA) compiler and developed autonomous driving of drones using Rao-Blackwellized Particle Filters.}
+\cventry{2017}{École Polytechnique Fédérale de Lausanne (EPFL)}{MSc in CS}{}{}{MSc in \textbf{Computer Science} with a minor in \textbf{Financial Engineering}
+\\ \textbf{Overall GPA: 5.58/6 (Top 5\%)}}
+\cventry{2015}{Johns Hopkins University}{Bachelor student in exchange}{}{}{Third and Last year of Bachelor: Study abroad. \textbf{Selected with a scholarship}}
+\cventry{2015}{École Polytechnique Fédérale de Lausanne (EPFL)}{BSc in CS}{}{}{
+\textbf{Overall GPA: 5.16/6 (Top 5\%)}}
 
 
 \section{Relevant Projects}
-\cventry{2017}{Spatial}{}{}{Contributed to Spatial, a Scala to FPGA/CGRA compiler, built its interpreter and applied Spatial to accelerated sensor fusion on drones as my master thesis at Stanford's DAWN lab. (github.com/stanford-ppl/spatial)}{}
-\cventry{2017}{scala-flow}{}{}{Built ``Scala data-flow library'' to develop real-time dataflows in a functionnal manner. Alternative to Simulink and compatible with Spatial. (github.com/rubenfiszel/scala-flow)}{}
-\cventry{2016}{rl4j}{}{}{Built ``reinforcement learning for java'' library developed as part of my internship at Skymind (github.com/deeplearning4j/rl4j)}{}
-\cventry{2016}{scala-drl}{}{}{Built ``Scala deep reinforcement learning library'' developed as part of my semester project at the Laboratory of Artificial Intelligence at EPFL (github.com/rubenfiszel/scala-drl)}{}
+\cventry{2018}{Paper: Spatial: A Language and Compiler for
+Application Accelerators}{6th Author}{}{}{PLDI2018 https://doi.org/10.1145/3192366.3192379}
+\cventry{2016}{Study of deep reinforcement learning methods and deep exploration}{}{}{}{Semester project at the Laboratory of Artificial Intelligence at EPFL}
 
 \section{Skills}
-\cvitem{Programming}{Scala, Haskell, OCaml, Python, Erlang, Typescript, Java}
-\cvitem{Interests}{Probabilities, Functionnal Programming, Machine Learning (RL and NLP)}
+\cvitem{Programming}{Scala, Java, Python, Haskell, Typescript, OCaml, Erlang}
+\cvitem{Interests}{Statistics, High-Performance Computing, Compilers, Functional Programming, Machine Learning, NLP, Distributed Systems (in particular Actor Frameworks)}
 \cvitem{Programming Contests}{
   TreeHacks 2017 ~ HackEPFL 2016 ~ HopHacks 2015 ~ Google Code Jam: 2012, 2013 ~ Helvetic Coding Contest (hc2): 2013 ~ IEEEXtreme Programming: 2013 (72nd Mondial Ranking) ~~Prologin: 2012, 2011
 }
 \cvitem{Others}{Elected class president throughout all my years at EPFL, Ski instructor, Teaching Assistant in various courses at EPFL}
 
 \end{document}
-
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: t
-%%% End:
