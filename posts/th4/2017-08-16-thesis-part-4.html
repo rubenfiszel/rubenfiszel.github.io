@@ -1,117 +1,224 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-    <head>
+
+<head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-	<title>(thesis 4/4) The Spatial implementation of a Rao-Blackwellized Particle Filter - Ruben Fiszel's website</title>
+	<title>(thesis 4/4) The Spatial implementation of a Rao-Blackwellized Particle Filter - Ruben Fiszel's website
+	</title>
 	<link rel="icon" type="image/png" href="../../images/lambda-xl.png">
 	<link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
 	<link rel="stylesheet" type="text/css" href="../../sass/main.css" />
 	<link type="text/css" href="../../css/font-awesome.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="../../css/mermaid.css">	
+	<link rel="stylesheet" href="../../css/mermaid.css">
 	<link rel="stylesheet" href="../../fonts/Serif/cmun-serif.css" />
-	<link href="http://fonts.googleapis.com/css?family=Droid+Serif" rel="stylesheet" type="text/css">	  
+	<link href="http://fonts.googleapis.com/css?family=Droid+Serif" rel="stylesheet" type="text/css">
 	<link href="http://fonts.googleapis.com/css?family=Droid+Sans" rel="stylesheet" type="text/css">
-	<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1//MathJax.js?config=TeX-AMS_CHTML"></script>		
-    </head>
-    <body>
-	<div id="header">
-	    <div id="logo">
-		<img src="../../images/lambda.png" alt="Lambda">
-		<a href="../../">Ruben Fiszel's website</a>
-	    </div>
+	<script type="text/javascript" async
+		src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1//MathJax.js?config=TeX-AMS_CHTML"></script>
+</head>
 
-	    <div id="navigation">
-		<a href="../../">Home</a>
-		<a href="../../about.html">About</a>
-		<a href="../../contact.html">Contact</a>
-	    </div>
-	    <div class="clear"></div>
+<body>
+	<div id="header">
+		<div id="logo">
+			<img src="../../images/lambda.png" alt="Lambda">
+			<a href="../../">Ruben Fiszel's website</a>
+		</div>
+
+		<div id="navigation">
+			<a href="../../">Home</a>
+			<a href="../../about.html">About</a>
+			<a href="../../contact.html">Contact</a>
+		</div>
+		<div class="clear"></div>
 	</div>
 
 	<div id="content">
-	  <h1 class="post-title"> (thesis 4/4) The Spatial implementation of a Rao-Blackwellized Particle Filter</h1>
-	  <h2 class="post-title"> </h2>	  
+		<h1 class="post-title"> (thesis 4/4) The Spatial implementation of a Rao-Blackwellized Particle Filter</h1>
+		<h2 class="post-title"> </h2>
 
-	    <div class="info">
-	      Posted on August 16, 2017
-	      
-              by Ruben Fiszel
-	      
-	    </div>
-	    <div class="post">
-	      <h3 id="about">About</h3>
-<p>This post is the part IV out of IV of my <a href="../../assets/thesis.pdf">master thesis</a> at the <a href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford, under <a href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and <a href="http://lampwww.epfl.ch/~odersky/">Prof. Odersky</a> supervision. The central themes of this thesis are sensor fusion and spatial, an hardware description language (Verilog is also one, but tedious).</p>
-<p>This part is about the spatial implementation of the asynchronous Rao-Blackwellized Particle filter presented in part I.</p>
-<h1 id="spatial-implementation-of-an-asynchronous-rao-blackwellized-particle-filter">Spatial implementation of an asynchronous Rao-Blackwellized Particle Filter</h1>
-<p>A Rao-Blackwellized Particle Filter turned out to be an ambitious application, the most complex that was developed so far with Spatial. It is an embarrassingly parallel algorithm and hence can leverage the parallelizable benefits of an application-specific hardware design. Developing this, we gained some insights specific about the hardware implementation of such an application and some others specific to the particularities of Spatial. At the time of the writing, some Spatial incomplete codegen prevented full synthesis of the application, but it ran correctly in the simulation mode and the area usage estimation fit on a Zynq board.</p>
-<h2 id="area">Area</h2>
-<p>The capacity of an FPGA is defined by its total resources: the synthesizable area and the memories. Synthesizable area is defined by the number of logic cells. Logic cells simulate any of the primitive logic gates through a lookup table (LUT).</p>
-<p>Memories are Scratchpad memory (SPM), high-speed internal writable cells used for temporary storage of calculations, data, and other work in progress. SPM are divided into 3 kinds:</p>
-<ul>
-<li>BRAM is a single cycle addressable memory that can contain up to 20Kb. There are commonly on the order of magnitude of up to a thousand BRAM.</li>
-<li>DRAM is burst-addressable (up to 512 bits at once) off-chip memory that has a capacity on the order of Gb. The DRAM is visible to the CPU and can be used as an interface mechanism to the FPGA.</li>
-<li>Registers are single elements memory (non-addressable). When used as part of a group of registers, they make possible parallel access.</li>
-</ul>
-<h2 id="parallel-patterns">Parallel patterns</h2>
-<p>Parallel patterns <span class="citation">[<a href="#ref-prabhakar_generating_2016">1</a>]</span> are a core set of operations that capture the essence of possible parallel operations. The 3 most important one are:</p>
-<ul>
-<li><code>FlatMap</code></li>
-<li><code>Fold</code></li>
-</ul>
-<p><code>filter</code> is also an important pattern but can be expressed in term of a <code>flatMap</code> (<code>l.flatMap(x =&gt; if (b(x)) List(x) else Nil)</code>). <code>Foreach</code> is a <code>Fold</code> with a <code>Unit</code> accumulator. <code>Reduce</code> can be expressed as a <code>Fold</code> (The <code>Reduce</code> operator from <code>Spatial</code> is actually a fold that ignores the accumulator on the first iterator). By reducing these patterns to their essence, and offering parallel implementations for them, Spatial can offer powerful parallelization that fits most, if not all, use-cases.</p>
-<p>In Spatial, <code>FlatMap</code> is actually composed by chaining a native <code>Map</code> and a <code>FIFO</code>.</p>
-<h2 id="control-flows">Control flows</h2>
-<p>Control flows (or flow of control) is the order in which individual statements, instructions or function calls of an imperative program are executed or evaluated. Spatial offers 3 kinds of Control flows.</p>
-<p>Spatial has hierarchical loop nesting. When loops are nested, every loop is an outer loop except the innermost loop. When there is no nesting, the loop is an inner loop. Control flows are outer loop annotations in Spatial. The 3 kind of annotation are:</p>
-<ul>
-<li><p>Sequential: The set of operations inside the annotated outer loop is done in sequence, one after the other. The first operation of the next iteration is never started before the last operation of the current iteration. <strong>syntax</strong>: parallel pattern annotation <code>Sequential.Foreach ...</code></p></li>
-<li><p>Parallel: The set of operations inside the annotated body is done in parallel. Loops can be given a parallelization factor, which creates as many hardware duplicates as the parallelization factor.<br />
-<strong>syntax</strong>: <code>Parallel { body }</code>, parallel counter annotation <code>(0 to N par parFactor)</code>.</p></li>
-<li>Pipe: The set of inner operations is pipelined Divided in 3 subkinds:
-<ul>
-<li>Inner Pipe: Basic form of pipelining; Only chosen when all the inner operations are primitive operations and hence, no buffering is needed.</li>
-<li><p>Coarse-Grain: Pipelining of parallel patterns: When loops are nested, a coarse-grain retiming and buffering must be done to increase the pipe throughput <strong>syntax</strong>: <code>Pipe { body }</code> or for parallel pattern annotation <code>Pipe.Foreach ...</code>.<br />
-Syntax is shared for Inner pipe or Coarse-grain but chosen depending on whether the inner operations are all “primitives” or not</p></li>
-<li><p>Stream Pipe: As soon as an operation is done, it must be stored in an hardware unit that support a FIFO interface (enqueue, dequeue), such that the pipelining is always achieved in an as soon as possible manner. Use the <code>Stream</code> syntax <strong>syntax</strong>: <code>Stream { body }</code> or for parallel pattern annotation <code>Stream.Foreach ...</code></p></li>
-</ul></li>
-</ul>
-<p>When not annotated, the outer loop is a Pipe by default.</p>
-<p>${lang-ref}</p>
-<h2 id="numeric-types">Numeric types</h2>
-<p>Numbers can be represented in two ways:</p>
-<ul>
-<li><strong>fixed-point</strong>: In the fixed-point representation, an arbitrary number of bits I represent the integer value, an arbitrary number of bits D represent the decimal value. If the representation is signed, negative numbers are represented using 2’s complement.</li>
-</ul>
-<p><code>I</code> defines the range (the maximum number that can be represented) and D defines the precision. The range is centered on 0 if the representation is signed.</p>
-<p>In Spatial, the fixed-point type is declared by <code>FixPt[S: _BOOL, I: _INT, D: _INT]</code>.<br />
-<code>_BOOL</code> is the typeclass of the types that represents a boolean. true and false types are <code>_TRUE</code> and <code>_FALSE</code>.<br />
-Likewise for<code>_INT</code>,the typeclass of types that represent a literal integer. The integers from 0 to 64 have the corresponding types <code>_0</code>, <code>_1</code>, …, <code>_64</code>.</p>
-<ul>
-<li><strong>floating-point</strong>: In the floating-point representation, one bit represents the sign, an arbitrary number of bits E represent the exponent and an arbitrary number of bits represent the significand part.</li>
-</ul>
-<p>In Spatial, the floating-point type is declared by <code>FltPt[S: _INT, E: _INT]</code>.</p>
-<p>By comparison, in the software world, the commonly available numeric types for integers are fixed points: <code>Byte</code> (8-bits), <code>Short</code> (16-bits), <code>Int</code> (32-bits), <code>Long</code> (64-bits) and for real floating-point: <code>Float</code> (32-bits), <code>Double</code> (64-bits).</p>
-<p>The floating-point representation is required for some applications because its precision increases as we get closer to 0: the space between all representable numbers around 0 diminish whereas it is uniform over the whole domain for the fixed point representation. This can be extremely important to store probabilities (since joint probability, when not normalized, can be infinitesimally small), or to store the result of exponentiation of negative numbers (a small difference in value might represent a big difference pre-exponentiation), or to store the values of square (we need more precision the closest we are from 0 because the line of the real squared is more “dense” the closer we are from 0). However, floating-point operations utilize more area resources than fixed-point (an increase by an order of magnitude of around 2)</p>
-<div class="figure">
-<img src="fltpt.jpg" alt="Representable Real line and its corresponding floating-point representation" />
-<p class="caption">Representable Real line and its corresponding floating-point representation</p>
-</div>
-<p>Fortunately, in Spatial, it is easy to define a type Alias to gather all the values that should share the same representation and then switch from floating-point to the fixed-point representation and tune the allocated number of bits by editing solely the type alias.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="co">//only this line need to be edited to change the representation</span>
+		<div class="info">
+			Posted on August 16, 2017
+
+			by Ruben Fiszel
+
+		</div>
+		<div class="post">
+			<h3 id="about">About</h3>
+			<p>This post is the part IV out of IV of my <a href="../../assets/thesis.pdf">master thesis</a> at the <a
+					href="http://dawn.cs.stanford.edu/">DAWN lab</a>, Stanford, under <a
+					href="http://arsenalfc.stanford.edu/kunle">Prof. Kunle</a> and <a
+					href="http://lampwww.epfl.ch/~odersky/">Prof. Odersky</a> supervision. The central themes of this
+				thesis are sensor fusion and spatial, an hardware description language (Verilog is also one, but
+				tedious).</p>
+			<p>This part is about the spatial implementation of the asynchronous Rao-Blackwellized Particle filter
+				presented in part I.</p>
+			<h1 id="spatial-implementation-of-an-asynchronous-rao-blackwellized-particle-filter">Spatial implementation
+				of an asynchronous Rao-Blackwellized Particle Filter</h1>
+			<p>A Rao-Blackwellized Particle Filter turned out to be an ambitious application, the most complex that was
+				developed so far with Spatial. It is an embarrassingly parallel algorithm and hence can leverage the
+				parallelizable benefits of an application-specific hardware design. Developing this, we gained some
+				insights specific about the hardware implementation of such an application and some others specific to
+				the particularities of Spatial. At the time of the writing, some Spatial incomplete codegen prevented
+				full synthesis of the application, but it ran correctly in the simulation mode and the area usage
+				estimation fit on a Zynq board.</p>
+			<h2 id="area">Area</h2>
+			<p>The capacity of an FPGA is defined by its total resources: the synthesizable area and the memories.
+				Synthesizable area is defined by the number of logic cells. Logic cells simulate any of the primitive
+				logic gates through a lookup table (LUT).</p>
+			<p>Memories are Scratchpad memory (SPM), high-speed internal writable cells used for temporary storage of
+				calculations, data, and other work in progress. SPM are divided into 3 kinds:</p>
+			<ul>
+				<li>BRAM is a single cycle addressable memory that can contain up to 20Kb. There are commonly on the
+					order of magnitude of up to a thousand BRAM.</li>
+				<li>DRAM is burst-addressable (up to 512 bits at once) off-chip memory that has a capacity on the order
+					of Gb. The DRAM is visible to the CPU and can be used as an interface mechanism to the FPGA.</li>
+				<li>Registers are single elements memory (non-addressable). When used as part of a group of registers,
+					they make possible parallel access.</li>
+			</ul>
+			<h2 id="parallel-patterns">Parallel patterns</h2>
+			<p>Parallel patterns <span class="citation">[<a href="#ref-prabhakar_generating_2016">1</a>]</span> are a
+				core set of operations that capture the essence of possible parallel operations. The 3 most important
+				one are:</p>
+			<ul>
+				<li><code>FlatMap</code></li>
+				<li><code>Fold</code></li>
+			</ul>
+			<p><code>filter</code> is also an important pattern but can be expressed in term of a <code>flatMap</code>
+				(<code>l.flatMap(x =&gt; if (b(x)) List(x) else Nil)</code>). <code>Foreach</code> is a
+				<code>Fold</code> with a <code>Unit</code> accumulator. <code>Reduce</code> can be expressed as a
+				<code>Fold</code> (The <code>Reduce</code> operator from <code>Spatial</code> is actually a fold that
+				ignores the accumulator on the first iterator). By reducing these patterns to their essence, and
+				offering parallel implementations for them, Spatial can offer powerful parallelization that fits most,
+				if not all, use-cases.</p>
+			<p>In Spatial, <code>FlatMap</code> is actually composed by chaining a native <code>Map</code> and a
+				<code>FIFO</code>.</p>
+			<h2 id="control-flows">Control flows</h2>
+			<p>Control flows (or flow of control) is the order in which individual statements, instructions or function
+				calls of an imperative program are executed or evaluated. Spatial offers 3 kinds of Control flows.</p>
+			<p>Spatial has hierarchical loop nesting. When loops are nested, every loop is an outer loop except the
+				innermost loop. When there is no nesting, the loop is an inner loop. Control flows are outer loop
+				annotations in Spatial. The 3 kind of annotation are:</p>
+			<ul>
+				<li>
+					<p>Sequential: The set of operations inside the annotated outer loop is done in sequence, one after
+						the other. The first operation of the next iteration is never started before the last operation
+						of the current iteration. <strong>syntax</strong>: parallel pattern annotation
+						<code>Sequential.Foreach ...</code></p>
+				</li>
+				<li>
+					<p>Parallel: The set of operations inside the annotated body is done in parallel. Loops can be given
+						a parallelization factor, which creates as many hardware duplicates as the parallelization
+						factor.<br />
+						<strong>syntax</strong>: <code>Parallel { body }</code>, parallel counter annotation
+						<code>(0 to N par parFactor)</code>.
+					</p>
+				</li>
+				<li>Pipe: The set of inner operations is pipelined Divided in 3 subkinds:
+					<ul>
+						<li>Inner Pipe: Basic form of pipelining; Only chosen when all the inner operations are
+							primitive operations and hence, no buffering is needed.</li>
+						<li>
+							<p>Coarse-Grain: Pipelining of parallel patterns: When loops are nested, a coarse-grain
+								retiming and buffering must be done to increase the pipe throughput
+								<strong>syntax</strong>: <code>Pipe { body }</code> or for parallel pattern annotation
+								<code>Pipe.Foreach ...</code>.<br />
+								Syntax is shared for Inner pipe or Coarse-grain but chosen depending on whether the
+								inner operations are all “primitives” or not</p>
+						</li>
+						<li>
+							<p>Stream Pipe: As soon as an operation is done, it must be stored in an hardware unit that
+								support a FIFO interface (enqueue, dequeue), such that the pipelining is always achieved
+								in an as soon as possible manner. Use the <code>Stream</code> syntax
+								<strong>syntax</strong>: <code>Stream { body }</code> or for parallel pattern annotation
+								<code>Stream.Foreach ...</code></p>
+						</li>
+					</ul>
+				</li>
+			</ul>
+			<p>When not annotated, the outer loop is a Pipe by default.</p>
+			<p>${lang-ref}</p>
+			<h2 id="numeric-types">Numeric types</h2>
+			<p>Numbers can be represented in two ways:</p>
+			<ul>
+				<li><strong>fixed-point</strong>: In the fixed-point representation, an arbitrary number of bits I
+					represent the integer value, an arbitrary number of bits D represent the decimal value. If the
+					representation is signed, negative numbers are represented using 2’s complement.</li>
+			</ul>
+			<p><code>I</code> defines the range (the maximum number that can be represented) and D defines the
+				precision. The range is centered on 0 if the representation is signed.</p>
+			<p>In Spatial, the fixed-point type is declared by <code>FixPt[S: _BOOL, I: _INT, D: _INT]</code>.<br />
+				<code>_BOOL</code> is the typeclass of the types that represents a boolean. true and false types are
+				<code>_TRUE</code> and <code>_FALSE</code>.<br />
+				Likewise for<code>_INT</code>,the typeclass of types that represent a literal integer. The integers from
+				0 to 64 have the corresponding types <code>_0</code>, <code>_1</code>, …, <code>_64</code>.
+			</p>
+			<ul>
+				<li><strong>floating-point</strong>: In the floating-point representation, one bit represents the sign,
+					an arbitrary number of bits E represent the exponent and an arbitrary number of bits represent the
+					significand part.</li>
+			</ul>
+			<p>In Spatial, the floating-point type is declared by <code>FltPt[S: _INT, E: _INT]</code>.</p>
+			<p>By comparison, in the software world, the commonly available numeric types for integers are fixed points:
+				<code>Byte</code> (8-bits), <code>Short</code> (16-bits), <code>Int</code> (32-bits), <code>Long</code>
+				(64-bits) and for real floating-point: <code>Float</code> (32-bits), <code>Double</code> (64-bits).</p>
+			<p>The floating-point representation is required for some applications because its precision increases as we
+				get closer to 0: the space between all representable numbers around 0 diminish whereas it is uniform
+				over the whole domain for the fixed point representation. This can be extremely important to store
+				probabilities (since joint probability, when not normalized, can be infinitesimally small), or to store
+				the result of exponentiation of negative numbers (a small difference in value might represent a big
+				difference pre-exponentiation), or to store the values of square (we need more precision the closest we
+				are from 0 because the line of the real squared is more “dense” the closer we are from 0). However,
+				floating-point operations utilize more area resources than fixed-point (an increase by an order of
+				magnitude of around 2)</p>
+			<div class="figure">
+				<img src="fltpt.jpg"
+					alt="Representable Real line and its corresponding floating-point representation" />
+				<p class="caption">Representable Real line and its corresponding floating-point representation</p>
+			</div>
+			<p>Fortunately, in Spatial, it is easy to define a type Alias to gather all the values that should share the
+				same representation and then switch from floating-point to the fixed-point representation and tune the
+				allocated number of bits by editing solely the type alias.</p>
+			<div class="sourceCode">
+				<pre class="sourceCode scala"><code class="sourceCode scala"><span class="co">//only this line need to be edited to change the representation</span>
 <span class="kw">type</span> SmallReal = FixPt[_TRUE, _4, _16]
 
 <span class="kw">val</span> a: SmallReal = ...
-<span class="kw">val</span> b: SmallReal = ...</code></pre></div>
-<h2 id="vector-and-matrix-module">Vector and matrix module</h2>
-<p>The state and uncertainty of a particle are a vector and a matrix (the matrix of covariance). All the operations involving the state and uncertainty, in particular Kalman prediction and Kalman update are matrix and vector operations. Kalman updates, for instance, when written in the matrix form is reasonably compact in the matrix form but actually represents a significant amount of compute and operations. For the sake of code clarity, it is crucial to be able to keep being able to write matrix operations in a succinct syntax. Furthermore, matrix and vector operations are a common need and it would be beneficial to write a reusable set of operations to Spatial. This is why a vector and matrix module was developed and added to the standard library of Spatial. The standard library is inaugurated by this module and its purpose is to include all the common set of operations that should not be part of the API because they do not constitute primitives of the language. Modules of the stdlib (standard library) are individually imported based on the needs.</p>
-<p>Matrix operations currently available are <code>+</code>, <code>-</code>, <code>*</code> (element wise when applied to a scalar, else matrix multiplication), <code>.transpose</code> <code>.det</code> (matrix determinant), .<code>inverse</code>, <code>h</code> (matrix height), <code>w</code> (matrix width). Vec operations currently available are <code>+</code>, <code>-</code>, * (element-wise with a scalar), <code>.dot</code> (dot-product).</p>
-<p>In place operations exists for <code>+</code>, <code>-</code>, <code>*</code> as <code>:+</code>, <code>:-</code>, <code>:*</code>. In place operations use the <code>RegFile</code> of the first element for the output instead of creating a new <code>RegFile</code>. This should be used with care because it makes pipelining much more inefficient (since the register is written twice to with a long delay in-between corresponding the operation).</p>
-<p>Matrix and Vec operations are parallelized whenever loops are involved.</p>
-<h3 id="meta-programming">Meta-Programming</h3>
-<p>Matrices and Vectors are stored as <code>RegFile[Real]</code> with the corresponding dimension of the matrix. However, from a user perspective, it is preferable to manipulate a type that corresponds to the abstraction, here a vector or matrix. We can achieve this with a wrapper type with a no-cost abstraction thanks to meta-expansion. Those wrapper types are hybrid types mixing staged (for the dimension) and non-staged types (for the data). Indeed, the staging compiler only sees the operations on the <code>RegFile</code> directly.</p>
-<p>Here is a simplified example.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">case</span> <span class="kw">class</span> <span class="fu">Vec</span>(size: scala.<span class="fu">Int</span>, data: RegFile[Real]) {
+<span class="kw">val</span> b: SmallReal = ...</code></pre>
+			</div>
+			<h2 id="vector-and-matrix-module">Vector and matrix module</h2>
+			<p>The state and uncertainty of a particle are a vector and a matrix (the matrix of covariance). All the
+				operations involving the state and uncertainty, in particular Kalman prediction and Kalman update are
+				matrix and vector operations. Kalman updates, for instance, when written in the matrix form is
+				reasonably compact in the matrix form but actually represents a significant amount of compute and
+				operations. For the sake of code clarity, it is crucial to be able to keep being able to write matrix
+				operations in a succinct syntax. Furthermore, matrix and vector operations are a common need and it
+				would be beneficial to write a reusable set of operations to Spatial. This is why a vector and matrix
+				module was developed and added to the standard library of Spatial. The standard library is inaugurated
+				by this module and its purpose is to include all the common set of operations that should not be part of
+				the API because they do not constitute primitives of the language. Modules of the stdlib (standard
+				library) are individually imported based on the needs.</p>
+			<p>Matrix operations currently available are <code>+</code>, <code>-</code>, <code>*</code> (element wise
+				when applied to a scalar, else matrix multiplication), <code>.transpose</code> <code>.det</code> (matrix
+				determinant), .<code>inverse</code>, <code>h</code> (matrix height), <code>w</code> (matrix width). Vec
+				operations currently available are <code>+</code>, <code>-</code>, * (element-wise with a scalar),
+				<code>.dot</code> (dot-product).</p>
+			<p>In place operations exists for <code>+</code>, <code>-</code>, <code>*</code> as <code>:+</code>,
+				<code>:-</code>, <code>:*</code>. In place operations use the <code>RegFile</code> of the first element
+				for the output instead of creating a new <code>RegFile</code>. This should be used with care because it
+				makes pipelining much more inefficient (since the register is written twice to with a long delay
+				in-between corresponding the operation).</p>
+			<p>Matrix and Vec operations are parallelized whenever loops are involved.</p>
+			<h3 id="meta-programming">Meta-Programming</h3>
+			<p>Matrices and Vectors are stored as <code>RegFile[Real]</code> with the corresponding dimension of the
+				matrix. However, from a user perspective, it is preferable to manipulate a type that corresponds to the
+				abstraction, here a vector or matrix. We can achieve this with a wrapper type with a no-cost abstraction
+				thanks to meta-expansion. Those wrapper types are hybrid types mixing staged (for the dimension) and
+				non-staged types (for the data). Indeed, the staging compiler only sees the operations on the
+				<code>RegFile</code> directly.</p>
+			<p>Here is a simplified example.</p>
+			<div class="sourceCode">
+				<pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">case</span> <span class="kw">class</span> <span class="fu">Vec</span>(size: scala.<span class="fu">Int</span>, data: RegFile[Real]) {
 	<span class="kw">def</span> +(y: Vec) = {
 		<span class="fu">require</span>(y.<span class="fu">size</span> == size)
 		<span class="kw">val</span> nreg = RegFile[T](n)
@@ -125,19 +232,32 @@ Likewise for<code>_INT</code>,the typeclass of types that represent a literal in
 }
 
 <span class="kw">val</span> v = Vec.<span class="fu">fill</span>(<span class="dv">3</span>)
-v + v</code></pre></div>
-<p>We can observe the <code>require(y.size == size)</code>. Since size is a non-staged type, the dimension is actually checked during meta-expansion. Similarly, matrix sizes are checked for all operations and the dimensions are propagated to the resulting matrix (e.g: Mat(a, b)*Mat(b,c) = Mat(a,c)). It prevents early a lot of issues.</p>
-<p>Furthermore, the Matrix API containing common matrix operations is implemented by 3 classes:</p>
-<ul>
-<li><code>MatrixDense</code> for matrices with dense data</li>
-<li><code>MatrixSparse</code> for matrices with sparse data. Optimizes operations by not doing unnecessary additions and multiplications when empty cells are involved.</li>
-<li><code>MatrixDiag</code> for diagonal matrices. Provide constant operations for multiplications with other matrices by only modifying a factor component. Use only 1 register for the whole matrix as a factor value.</li>
-</ul>
-<p>The underlying implementation are hidden from the user since they are all created from the <code>Matrix</code> companion object. Then, the most optimized type possible is conserved through the transformation. When impossible to know the structure of the new matrix, the fallback is <code>MatrixDense</code>.</p>
-<h3 id="views">Views</h3>
-<p>Some operations like transpose and many others do not need to actually change the matrix upon which they are realized. They could just operate on a view of the underlying <code>RegFile</code> memory. This view is also a no-cost abstraction since it does not exist after meta-expansion.</p>
-<p>Here is a simplified example.</p>
-<div class="sourceCode"><pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">sealed</span> <span class="kw">trait</span> RegView2 {
+v + v</code></pre>
+			</div>
+			<p>We can observe the <code>require(y.size == size)</code>. Since size is a non-staged type, the dimension
+				is actually checked during meta-expansion. Similarly, matrix sizes are checked for all operations and
+				the dimensions are propagated to the resulting matrix (e.g: Mat(a, b)*Mat(b,c) = Mat(a,c)). It prevents
+				early a lot of issues.</p>
+			<p>Furthermore, the Matrix API containing common matrix operations is implemented by 3 classes:</p>
+			<ul>
+				<li><code>MatrixDense</code> for matrices with dense data</li>
+				<li><code>MatrixSparse</code> for matrices with sparse data. Optimizes operations by not doing
+					unnecessary additions and multiplications when empty cells are involved.</li>
+				<li><code>MatrixDiag</code> for diagonal matrices. Provide constant operations for multiplications with
+					other matrices by only modifying a factor component. Use only 1 register for the whole matrix as a
+					factor value.</li>
+			</ul>
+			<p>The underlying implementation are hidden from the user since they are all created from the
+				<code>Matrix</code> companion object. Then, the most optimized type possible is conserved through the
+				transformation. When impossible to know the structure of the new matrix, the fallback is
+				<code>MatrixDense</code>.</p>
+			<h3 id="views">Views</h3>
+			<p>Some operations like transpose and many others do not need to actually change the matrix upon which they
+				are realized. They could just operate on a view of the underlying <code>RegFile</code> memory. This view
+				is also a no-cost abstraction since it does not exist after meta-expansion.</p>
+			<p>Here is a simplified example.</p>
+			<div class="sourceCode">
+				<pre class="sourceCode scala"><code class="sourceCode scala"><span class="kw">sealed</span> <span class="kw">trait</span> RegView2 {
   <span class="kw">def</span> <span class="fu">apply</span>(y: Index, x: Index)(<span class="kw">implicit</span> sc: SourceContext): T
   <span class="kw">def</span> <span class="fu">update</span>(y: Index, x: Index, v: T)(<span class="kw">implicit</span> sc: SourceContext): Unit      
 }  
@@ -169,64 +289,126 @@ v + v</code></pre></div>
   <span class="co">//It simply invert the y and x dimension for update and access.</span>
   <span class="kw">def</span> t =
     <span class="fu">copy</span>(h = w, w = h, reg = <span class="fu">RegTranspose2</span>(reg))
-}  </code></pre></div>
-<p>In the same spirit, views exist for SRAM access, constant values, vec as diagonal matrix, matrix column as vec, matrix row as vec.</p>
-<h2 id="mini-particle-filter">Mini Particle Filter</h2>
-<p>A “mini” particle Filter has been developed at first. The model has been simplified. It supposes that the drone always has the same normal orientation and only moves in 2D, on the x and y axis. The state to estimate is only the 2D position. It is a plain particle filter and therefore, not conditioned on a latent variable and without any Kalman filtering. Thus, no matrix operations need to be applied. The sensor measurements are stored and loaded directly as constant values in the DRAM. This filter is a sanity check that the particle filter structure is sound, fittable on a Zynq board and working as expected.</p>
-<p>The full Mini Particle Filter source code application is contained in the <a href="#mini-particle-filter-1">Appendix</a> and publicly available as a Spatial application on <a href="https://github.com/stanford-ppl/spatial-apps/blob/develop/src/MiniParticleFilter.scala">github</a>.</p>
-<h2 id="rao-blackwellized-particle-filter">Rao-Blackwellized Particle Filter</h2>
-<p>The RBPF implementation on hardware follows the expected structure of the filter thanks to Spatial’s high level of abstraction. To implement the sensors needing to be processed in order, one FIFO is assigned for each sensor. Then an FSM dequeues and updates the filter one measurement at a time. The dequeued FIFO is the one containing the measurement with the oldest timestamp. This ensures that measurements are always processed one at a time and in order of creation’s timestamp.</p>
-<p>The full Rao-Blackwellized source code application is contained in the <a href="#rao-blackwellized-particle-filter-2">Appendix</a> and publicly available as a Spatial application on <a href="https://github.com/stanford-ppl/spatial-apps/blob/develop/src/RaoBlackParticleFilter.scala">github</a>.</p>
-<h2 id="insights">Insights</h2>
-<ul>
-<li>When writing complex applications, one must be careful about writing functions. Indeed, functions are always applied and inlined during meta-expansion. This results in the IR growing exponentially and causes the compiler phase to take a long time. Staged functions will be brought to Spatial to reduce the IR exponential growth in the future. However, the intrinsic nature of hardware must result in function application being “inlined” since the circuit are by definition duplicated when synthesized. This is why, factoring should not be done the same way in Spatial as in Software. In Software, a good factorization rule is to avoid all repetition of the <strong>code</strong> by generalizing all common parts into functions. For Spatial, the factorization must be thought of as avoiding all repetition of the <strong>synthesized hardware</strong> by reusing as many memories, signal and wires as possible.</li>
-<li>Changing the numeric type matters: floating-point operations are much costlier in term of area than fixed-point and should be used with parsimony when the area resources are limited.</li>
-<li>Parallelization can be achieved through pipelining. Indeed, a pipeline will attempt to use all the resources available in parallel. Compared to duplicating hardware, a pipeline only takes at most N the biggest time steps of the pipeline. If the time step is small enough compared to the entire time length of the pipeline, the time overhead is small and no area is wasted.</li>
-<li>Doing in-place operations seems like a great idea to save memory at first, but it breaks pipelining so it has to be used with caution.</li>
-<li>Reducing the number of operations between first and last access is crucial because the number of operation correspond to the depth of the pipeline. When the depth grows large, coarse grain pipelining will have to create as many intermediate buffers to ensure protected access at different stages of the pipeline. Furthermore, the order of execution is currently not rearranged by the compiler, so, in some cases, simply changing the order of a few line of codes can make a tremendous difference in the depth of the pipeline.</li>
-</ul>
-<h2 id="conclusion">Conclusion</h2>
-<p>The Rao-Blackwellized Particle Filter is a complex application. It would have been impractical, almost to the point of infeasible, to attempt to build it with a reasonable latency and throughput, in a timely manner, for a single person, if not for Spatial. We also gained insights about the development of complex applications for spatial and developed a new Matrix module as part of the standard library that might ease the development of new Spatial applications.</p>
-<h1 id="conclusion-1" class="unnumbered">Conclusion</h1>
-<p>This work presents a novel approach to POSE estimation of drones with an accelerated, asynchronous, Rao-Blackwellized Particle Filter and its implementation in software and hardware. A Rao-Blackwellized Particle Filter is mathematically more sound to solve the complexities of tracking the non-linear transformations of the orientation through time than current alternatives. Furthermore, we show that this choice improves upon the accuracy for both the position and orientation estimation.</p>
-<p>To exploit the inherent parallelism in the filter, we have developed a highly accurate hardware implementation in Spatial with low latency and high throughput, capable of handling highly dynamic settings such as drone tracking.</p>
-<p>We have also developed two components that ease the design of hardware data paths for streaming applications; Scala-flow, a standalone data-flow simulation tool, and an interpreter for Spatial that can execute at staging time any arbitrary Spatial program. The interpreter is a key component to enable integration of the hardware programmability of Spatial to the streaming capabilities of Scala-flow. Scala-flow offers a functional interface, accurate functional simulation, hierarchical and modular grouping of nodes through blocks, immutable representation of the data flow graph, automatic batch scheduling, a graph structure display, interactive debugging and the ability to generate plots.</p>
-<p>On a higher level, this work shows that Scala, being the underlying language substrate behind Spatial, enables building complex and extensive development tools without sacrificing productivity. It also shows that Spatial is a powerful, productive, and versatile language that can be used in a wide range of applications, such as extending the current state-of-the-art of embedded drone applications.</p>
-<h2 id="references" class="unnumbered">References</h2>
-<div id="refs" class="references">
-<div id="ref-prabhakar_generating_2016">
-<p>[1] R. Prabhakar, “Generating configurable hardware from parallel patterns,” <em>ACM SIGOPS Operating Systems Review</em>, vol. 50, no. 2, pp. 651–665, 2016.</p>
-</div>
-</div>
-	    </div>
-	    <div class="license" style="margin-left:80%;">
-	      <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons" style="border-width:0" src="../../images/cc.png" /></a>
-	    </div>
+}  </code></pre>
+			</div>
+			<p>In the same spirit, views exist for SRAM access, constant values, vec as diagonal matrix, matrix column
+				as vec, matrix row as vec.</p>
+			<h2 id="mini-particle-filter">Mini Particle Filter</h2>
+			<p>A “mini” particle Filter has been developed at first. The model has been simplified. It supposes that the
+				drone always has the same normal orientation and only moves in 2D, on the x and y axis. The state to
+				estimate is only the 2D position. It is a plain particle filter and therefore, not conditioned on a
+				latent variable and without any Kalman filtering. Thus, no matrix operations need to be applied. The
+				sensor measurements are stored and loaded directly as constant values in the DRAM. This filter is a
+				sanity check that the particle filter structure is sound, fittable on a Zynq board and working as
+				expected.</p>
+			<p>The full Mini Particle Filter source code application is contained in the <a
+					href="#mini-particle-filter-1">Appendix</a> and publicly available as a Spatial application on <a
+					href="https://github.com/stanford-ppl/spatial-apps/blob/develop/src/MiniParticleFilter.scala">github</a>.
+			</p>
+			<h2 id="rao-blackwellized-particle-filter">Rao-Blackwellized Particle Filter</h2>
+			<p>The RBPF implementation on hardware follows the expected structure of the filter thanks to Spatial’s high
+				level of abstraction. To implement the sensors needing to be processed in order, one FIFO is assigned
+				for each sensor. Then an FSM dequeues and updates the filter one measurement at a time. The dequeued
+				FIFO is the one containing the measurement with the oldest timestamp. This ensures that measurements are
+				always processed one at a time and in order of creation’s timestamp.</p>
+			<p>The full Rao-Blackwellized source code application is contained in the <a
+					href="#rao-blackwellized-particle-filter-2">Appendix</a> and publicly available as a Spatial
+				application on <a
+					href="https://github.com/stanford-ppl/spatial-apps/blob/develop/src/RaoBlackParticleFilter.scala">github</a>.
+			</p>
+			<h2 id="insights">Insights</h2>
+			<ul>
+				<li>When writing complex applications, one must be careful about writing functions. Indeed, functions
+					are always applied and inlined during meta-expansion. This results in the IR growing exponentially
+					and causes the compiler phase to take a long time. Staged functions will be brought to Spatial to
+					reduce the IR exponential growth in the future. However, the intrinsic nature of hardware must
+					result in function application being “inlined” since the circuit are by definition duplicated when
+					synthesized. This is why, factoring should not be done the same way in Spatial as in Software. In
+					Software, a good factorization rule is to avoid all repetition of the <strong>code</strong> by
+					generalizing all common parts into functions. For Spatial, the factorization must be thought of as
+					avoiding all repetition of the <strong>synthesized hardware</strong> by reusing as many memories,
+					signal and wires as possible.</li>
+				<li>Changing the numeric type matters: floating-point operations are much costlier in term of area than
+					fixed-point and should be used with parsimony when the area resources are limited.</li>
+				<li>Parallelization can be achieved through pipelining. Indeed, a pipeline will attempt to use all the
+					resources available in parallel. Compared to duplicating hardware, a pipeline only takes at most N
+					the biggest time steps of the pipeline. If the time step is small enough compared to the entire time
+					length of the pipeline, the time overhead is small and no area is wasted.</li>
+				<li>Doing in-place operations seems like a great idea to save memory at first, but it breaks pipelining
+					so it has to be used with caution.</li>
+				<li>Reducing the number of operations between first and last access is crucial because the number of
+					operation correspond to the depth of the pipeline. When the depth grows large, coarse grain
+					pipelining will have to create as many intermediate buffers to ensure protected access at different
+					stages of the pipeline. Furthermore, the order of execution is currently not rearranged by the
+					compiler, so, in some cases, simply changing the order of a few line of codes can make a tremendous
+					difference in the depth of the pipeline.</li>
+			</ul>
+			<h2 id="conclusion">Conclusion</h2>
+			<p>The Rao-Blackwellized Particle Filter is a complex application. It would have been impractical, almost to
+				the point of infeasible, to attempt to build it with a reasonable latency and throughput, in a timely
+				manner, for a single person, if not for Spatial. We also gained insights about the development of
+				complex applications for spatial and developed a new Matrix module as part of the standard library that
+				might ease the development of new Spatial applications.</p>
+			<h1 id="conclusion-1" class="unnumbered">Conclusion</h1>
+			<p>This work presents a novel approach to POSE estimation of drones with an accelerated, asynchronous,
+				Rao-Blackwellized Particle Filter and its implementation in software and hardware. A Rao-Blackwellized
+				Particle Filter is mathematically more sound to solve the complexities of tracking the non-linear
+				transformations of the orientation through time than current alternatives. Furthermore, we show that
+				this choice improves upon the accuracy for both the position and orientation estimation.</p>
+			<p>To exploit the inherent parallelism in the filter, we have developed a highly accurate hardware
+				implementation in Spatial with low latency and high throughput, capable of handling highly dynamic
+				settings such as drone tracking.</p>
+			<p>We have also developed two components that ease the design of hardware data paths for streaming
+				applications; Scala-flow, a standalone data-flow simulation tool, and an interpreter for Spatial that
+				can execute at staging time any arbitrary Spatial program. The interpreter is a key component to enable
+				integration of the hardware programmability of Spatial to the streaming capabilities of Scala-flow.
+				Scala-flow offers a functional interface, accurate functional simulation, hierarchical and modular
+				grouping of nodes through blocks, immutable representation of the data flow graph, automatic batch
+				scheduling, a graph structure display, interactive debugging and the ability to generate plots.</p>
+			<p>On a higher level, this work shows that Scala, being the underlying language substrate behind Spatial,
+				enables building complex and extensive development tools without sacrificing productivity. It also shows
+				that Spatial is a powerful, productive, and versatile language that can be used in a wide range of
+				applications, such as extending the current state-of-the-art of embedded drone applications.</p>
+			<h2 id="references" class="unnumbered">References</h2>
+			<div id="refs" class="references">
+				<div id="ref-prabhakar_generating_2016">
+					<p>[1] R. Prabhakar, “Generating configurable hardware from parallel patterns,” <em>ACM SIGOPS
+							Operating Systems Review</em>, vol. 50, no. 2, pp. 651–665, 2016.</p>
+				</div>
+			</div>
+		</div>
+		<div class="license" style="margin-left:80%;">
+			<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Licence Creative Commons"
+					style="border-width:0" src="../../images/cc.png" /></a>
+		</div>
 	</div>
 
 	<hr>
 
 	<div id="footer">
-	    <section class="social">
-		<a href="https://ch.linkedin.com/in/rubenfiszel" target="_blank"><i class="fa fa-linkedin fa-2x"></i></a>
-		<a href="https://github.com/rubenfiszel" target="_blank"><i class="fa fa-github fa-2x"></i></a>
-		<a href="mailto:ruben.fiszel@epfl.ch"><i class="fa fa-envelope fa-2x"></i></a>
-		<a href="assets/RubenFiszel_resume.pdf"><i class="fa fa-file fa-2x"></i></a>
-	    </section>
+		<section class="social">
+			<a href="https://ch.linkedin.com/in/rubenfiszel" target="_blank"><i class="fa fa-linkedin fa-2x"></i></a>
+			<a href="https://github.com/rubenfiszel" target="_blank"><i class="fa fa-github fa-2x"></i></a>
+			<a href="mailto:ruben@rubenfiszel.com"><i class="fa fa-envelope fa-2x"></i></a>
+			<a href="assets/RubenFiszel_resume.pdf"><i class="fa fa-file fa-2x"></i></a>
+		</section>
 	</div>
 
 	<script src="../../js/mermaid.min.js"></script>
-	<script>mermaid.initialize({startOnLoad:true});</script>		
-	
-	<script>
-	 (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	     (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-				  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	 })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+	<script>mermaid.initialize({startOnLoad:true});</script>
 
-	 ga('create', 'UA-3040887-4', 'auto');
-	 ga('send', 'pageview');
+	<script>
+		(function (i, s, o, g, r, a, m) {
+			i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+				(i[r].q = i[r].q || []).push(arguments)
+			}, i[r].l = 1 * new Date(); a = s.createElement(o),
+				m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+		})(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+		ga('create', 'UA-3040887-4', 'auto');
+		ga('send', 'pageview');
 
 	</script>
-    </body>
+</body>
+
 </html>
